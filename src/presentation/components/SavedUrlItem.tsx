@@ -102,17 +102,6 @@ export function SavedUrlItem({ item, progress, isCurrent, onPress, onDelete, onE
           <GenreRow item={item} onEdit={onEditGenres} />
         </View>
       </View>
-      {state === 'unplayed' ? null : (
-        <View style={styles.barTrack}>
-          <View
-            style={[
-              styles.barFill,
-              isCompleted ? styles.barFillCompleted : null,
-              { width: `${getProgressFraction(progress) * PERCENT}%` },
-            ]}
-          />
-        </View>
-      )}
     </Pressable>
   );
 }
@@ -175,13 +164,4 @@ const styles = StyleSheet.create({
   genreLabel: { color: colors.textSupporting, fontFamily: fonts.labelSemiBold, fontSize: 11 },
   addGenre: { color: colors.textMuted, fontFamily: fonts.labelSemiBold, fontSize: 12 },
   moreGenres: { color: colors.textMuted, fontFamily: fonts.labelSemiBold, fontSize: 11 },
-  barTrack: {
-    height: 4,
-    marginTop: spacing.sm + spacing.xs,
-    borderRadius: radii.pill,
-    backgroundColor: colors.stroke,
-    overflow: 'hidden',
-  },
-  barFill: { height: '100%', backgroundColor: colors.primary },
-  barFillCompleted: { backgroundColor: colors.textMuted },
 });
