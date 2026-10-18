@@ -1,6 +1,6 @@
 import { Pause, Play, Repeat, Repeat1, RotateCcw, RotateCw, Shuffle, SkipBack, SkipForward } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatTime } from '../format/formatTime';
 import { colors, fonts, radii, spacing } from '../theme';
 import { usePlayerStore } from '../../business/player/playerStore';
@@ -9,7 +9,6 @@ import { Scrubber } from './Scrubber';
 import { SkipButton } from './SkipButton';
 import { ErrorMessage } from './StatusMessage';
 
-const BUFFERING_MESSAGE = 'Buffering...';
 const SKIP_BACK_SECONDS = 15;
 const SKIP_FORWARD_SECONDS = 30;
 const PLAY_BUTTON_SIZE = 72;
@@ -17,7 +16,6 @@ const PLAY_ICON_SIZE = 32;
 
 export function AudioPlayer() {
   const isLoaded = usePlayerStore((state) => state.isLoaded);
-  const isBuffering = usePlayerStore((state) => state.isBuffering);
   const isPlaying = usePlayerStore((state) => state.isPlaying);
   const currentTime = usePlayerStore((state) => state.currentTime);
   const duration = usePlayerStore((state) => state.duration);
@@ -50,15 +48,10 @@ export function AudioPlayer() {
           <ErrorMessage message={notice} />
         </Pressable>
       ) : null}
-      {/* Hidden, not removed, while the audio loads, so the controls below keep their place. */}
-      <View style={[styles.progress, isLoaded ? null : styles.progressHidden]} pointerEvents={isLoaded ? 'auto' : 'none'}>
+      <View style={styles.progress} pointerEvents={isLoaded ? 'auto' : 'none'}>
         <Scrubber fraction={scrubFraction ?? progressFraction} onScrubChange={setScrubFraction} onSeek={seekToFraction} />
         <View style={styles.times}>
           <Text testID="current-time" style={styles.time}>{formatTime(shownTime)}</Text>
-          <View style={styles.buffering}>
-            {isBuffering ? <ActivityIndicator size="small" color={colors.primary} /> : null}
-            {isBuffering ? <Text style={styles.bufferingLabel}>{BUFFERING_MESSAGE}</Text> : null}
-          </View>
           <Text testID="duration-time" style={styles.time}>{formatTime(duration)}</Text>
         </View>
       </View>
@@ -109,11 +102,8 @@ export function AudioPlayer() {
 const styles = StyleSheet.create({
   container: { alignSelf: 'stretch', alignItems: 'center' },
   progress: { alignSelf: 'stretch' },
-  progressHidden: { opacity: 0 },
   times: { alignSelf: 'stretch', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   time: { color: colors.textSupporting, fontFamily: fonts.labelMedium, fontSize: 13, letterSpacing: 0.5, fontVariant: ['tabular-nums'] },
-  buffering: { flexDirection: 'row', alignItems: 'center' },
-  bufferingLabel: { color: colors.primary, fontFamily: fonts.body, fontSize: 12, marginLeft: spacing.sm },
   mainRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', alignSelf: 'stretch', marginTop: spacing.sm },
   mainRowCentered: { justifyContent: 'center' },
   playButton: {
