@@ -14,6 +14,7 @@ export default function PlayerScreen() {
   const track = usePlayerStore((state) => state.track);
   const phase = usePlayerStore((state) => state.phase);
   const errorMessage = usePlayerStore((state) => state.errorMessage);
+  const loadTrack = usePlayerStore((state) => state.loadTrack);
 
   if (!track) {
     return (
@@ -34,7 +35,7 @@ export default function PlayerScreen() {
       </View>
       <View style={styles.controls}>
         {phase === 'resolving' ? <LoadingMessage message={FETCHING_INFO_MESSAGE} /> : null}
-        {phase === 'error' && errorMessage ? <ErrorMessage message={errorMessage} /> : null}
+        {phase === 'error' && errorMessage ? <ErrorMessage message={errorMessage} onRetry={() => loadTrack(track)} /> : null}
         {phase === 'ready' ? <AudioPlayer /> : null}
       </View>
     </View>
