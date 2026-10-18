@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createPlayerStore } from './createPlayerStore.ts';
+import { createPlayerStore, PLAYBACK_RATES } from './createPlayerStore.ts';
 import type { PlaybackStatus } from './createPlayerStore.ts';
 import type { ProgressByUrl } from '../lib/playbackProgress.ts';
 
@@ -25,6 +25,7 @@ function createFakes(
     seekTo: async (seconds: number) => {
       calls.push(`seek ${seconds}`);
     },
+    setPlaybackRate: (rate: number) => calls.push(`rate ${rate}`),
     setEffectEnabled: async (effect: string, enabled: boolean) => {
       if (shouldFailEffects) throw new Error('unsupported');
       calls.push(`${effect} ${enabled}`);
@@ -409,4 +410,65 @@ test('reports a progress save failure without stopping playback', async () => {
 
   assert.equal(store.getState().phase, 'ready');
   assert.equal(store.getState().errorMessage, 'Could not save your listening progress');
+});
+
+const seeksIn = (calls: string[]) => calls.filter((call) => call.startsWith('seek'));
+
+test('skips forward and back from the current position', async () => {
+  const { store, calls, emitStatus } = createFakes();
+  await store.getState().loadTrack(TRACK_A);
+  emitStatus(statusAt(100));
+
+  await store.getState().skipBySeconds(30);
+  await store.getState().skipBySeconds(-15);
+
+  assert.deepEqual(seeksIn(calls), ['seek 130', 'seek 85']);
+});
+
+test('keeps a skip inside the track', async () => {
+  const { store, calls, emitStatus } = createFakes();
+  await store.getState().loadTrack(TRACK_A);
+  emitStatus(statusAt(5));
+  await store.getState().skipBySeconds(-15);
+  emitStatus(statusAt(990));
+  await store.getState().skipBySeconds(30);
+
+  assert.deepEqual(seeksIn(calls), ['seek 0', 'seek 1000']);
+});
+
+test('ignores skips before the audio has loaded', async () => {
+  const { store, calls } = createFakes();
+  await store.getState().skipBySeconds(30);
+  await store.getState().loadTrack(TRACK_A);
+  await store.getState().skipBySeconds(30);
+
+  assert.deepEqual(seeksIn(calls), []);
+});
+
+test('cycles the playback rate through the list and wraps around', () => {
+  const { store, calls } = createFakes();
+
+  for (let step = 0; step < PLAYBACK_RATES.length; step += 1) store.getState().cyclePlaybackRate();
+
+  assert.deepEqual(calls, ['rate 1.25', 'rate 1.5', 'rate 2', 'rate 0.75', 'rate 1']);
+  assert.equal(store.getState().playbackRate, 1);
+});
+
+test('applies the chosen rate to the next track and keeps it after stop', async () => {
+  const { store, calls } = createFakes();
+  store.getState().cyclePlaybackRate();
+
+  await store.getState().loadTrack(TRACK_A);
+  store.getState().stop();
+
+  assert.equal(calls.filter((call) => call === 'rate 1.25').length, 2);
+  assert.equal(store.getState().playbackRate, 1.25);
+});
+
+test('does not touch the rate when it is the default', async () => {
+  const { store, calls } = createFakes();
+
+  await store.getState().loadTrack(TRACK_A);
+
+  assert.equal(calls.some((call) => call.startsWith('rate')), false);
 });

@@ -9,6 +9,10 @@ const EFFECT_ERROR_MESSAGE = 'That audio effect is not available on this device'
 const PROGRESS_LOAD_ERROR_MESSAGE = 'Could not load your listening progress';
 const PROGRESS_SAVE_ERROR_MESSAGE = 'Could not save your listening progress';
 
+// The speed chip cycles through these in order.
+export const PLAYBACK_RATES = [1, 1.25, 1.5, 2, 0.75];
+const DEFAULT_PLAYBACK_RATE = PLAYBACK_RATES[0];
+
 export type PlayerPhase = 'idle' | 'resolving' | 'ready' | 'error';
 
 export type AudioEffect = 'compressor' | 'vocalBoost';
@@ -32,6 +36,7 @@ export type AudioPlayerPort = {
   play: () => void;
   pause: () => void;
   seekTo: (seconds: number) => Promise<void>;
+  setPlaybackRate: (rate: number) => void;
   setEffectEnabled: (effect: AudioEffect, enabled: boolean) => Promise<void>;
   enableBackgroundPlayback: () => Promise<void>;
   showLockScreenControls: (metadata: LockScreenMetadata) => void;
@@ -61,6 +66,7 @@ type PlayerData = {
   duration: number;
   errorMessage: string | null;
   enabledEffects: Record<AudioEffect, boolean>;
+  playbackRate: number;
   progressByUrl: ProgressByUrl;
 };
 
@@ -68,14 +74,16 @@ type PlayerActions = {
   loadTrack: (track: SavedUrl) => Promise<void>;
   togglePlayback: () => void;
   seekToFraction: (fraction: number) => Promise<void>;
+  skipBySeconds: (deltaSeconds: number) => Promise<void>;
+  cyclePlaybackRate: () => void;
   stop: () => void;
   toggleEffect: (effect: AudioEffect) => Promise<void>;
 };
 
 export type PlayerState = PlayerData & PlayerActions;
 
-// Effects and saved progress belong to the player, so they survive track changes and stop().
-const IDLE_DATA: Omit<PlayerData, 'enabledEffects' | 'progressByUrl'> = {
+// Effects, speed and saved progress belong to the player, so they survive track changes and stop().
+const IDLE_DATA: Omit<PlayerData, 'enabledEffects' | 'playbackRate' | 'progressByUrl'> = {
   track: null,
   phase: 'idle',
   isLoaded: false,
@@ -96,6 +104,7 @@ export function createPlayerStore({ resolveAudio, player, progressStorage }: Pla
   const store = createStore<PlayerState>()((set, get) => ({
     ...IDLE_DATA,
     enabledEffects: { compressor: false, vocalBoost: false },
+    playbackRate: DEFAULT_PLAYBACK_RATE,
     progressByUrl: {},
 
     loadTrack: async (track) => {
@@ -113,6 +122,7 @@ export function createPlayerStore({ resolveAudio, player, progressStorage }: Pla
         if (get().track?.url !== track.url) return;
         await player.enableBackgroundPlayback();
         player.replace(audio.url);
+        if (get().playbackRate !== DEFAULT_PLAYBACK_RATE) player.setPlaybackRate(get().playbackRate);
         player.play();
         player.showLockScreenControls({ title: track.title, artworkUrl: track.thumbnailUrl });
         set({ phase: 'ready' });
@@ -135,17 +145,15 @@ export function createPlayerStore({ resolveAudio, player, progressStorage }: Pla
       } else player.play();
     },
 
-    seekToFraction: async (fraction) => {
-      const { phase, isLoaded, duration } = get();
-      if (phase !== 'ready' || !isLoaded || duration <= 0) return;
+    seekToFraction: (fraction) => seekWithinTrack(fraction * get().duration),
 
-      resumeSeconds = null;
-      const clampedFraction = Math.min(Math.max(fraction, 0), 1);
-      try {
-        await player.seekTo(clampedFraction * duration);
-      } catch {
-        set({ errorMessage: SEEK_ERROR_MESSAGE });
-      }
+    skipBySeconds: (deltaSeconds) => seekWithinTrack(get().currentTime + deltaSeconds),
+
+    cyclePlaybackRate: () => {
+      const nextIndex = (PLAYBACK_RATES.indexOf(get().playbackRate) + 1) % PLAYBACK_RATES.length;
+      const playbackRate = PLAYBACK_RATES[nextIndex];
+      player.setPlaybackRate(playbackRate);
+      set({ playbackRate });
     },
 
     stop: () => {
@@ -167,6 +175,18 @@ export function createPlayerStore({ resolveAudio, player, progressStorage }: Pla
       }
     },
   }));
+
+  const seekWithinTrack = async (targetSeconds: number) => {
+    const { phase, isLoaded, duration } = store.getState();
+    if (phase !== 'ready' || !isLoaded || duration <= 0) return;
+
+    resumeSeconds = null;
+    try {
+      await player.seekTo(Math.min(Math.max(targetSeconds, 0), duration));
+    } catch {
+      store.setState({ errorMessage: SEEK_ERROR_MESSAGE });
+    }
+  };
 
   const recordProgress = async (url: string, positionSeconds: number, durationSeconds: number) => {
     if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return;

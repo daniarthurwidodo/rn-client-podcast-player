@@ -1,35 +1,36 @@
 # Podcast Player — Product Requirements Document
 
-> Status: describes the app **as implemented today** (v1.0.0), plus a prioritized list of UI/UX improvements (§8).
+> Status: describes the app **as implemented today** (Phases 1–3 of the "Acoustic Ember" redesign, see `DESIGN.md`).
 > Items marked **[Proposed]** are not built.
 
 ## 1. Overview
 
-A mobile audio player for podcasts that live behind web links (currently YouTube). The user pastes a URL, the app resolves it to an audio-only stream on-device, and plays it with background and lock-screen support. Two optional audio effects (compressor, vocal boost) make speech easier to hear.
+A mobile audio player for podcasts that live behind web links (currently YouTube). The user pastes a URL, the app resolves it to an audio-only stream on-device, and plays it with background and lock-screen support. It remembers where you stopped, and two optional audio effects (compressor, vocal boost) make speech easier to hear.
 
 | | |
 |---|---|
 | Platform | **Android only** (both native modules are Android/Kotlin; iOS/web would fail on `requireNativeModule`) |
-| Stack | Expo SDK 58, React Native 0.88, Expo Router, Zustand, `expo-audio`, AsyncStorage |
+| Stack | Expo SDK 58, React Native 0.88, Expo Router, Zustand, `expo-audio`, `expo-clipboard`, AsyncStorage |
+| Design | Dark "Acoustic Ember" system (`DESIGN.md`); tokens in `lib/theme.ts`; Plus Jakarta Sans + Manrope fonts |
 | Native modules | `newpipe-resolver` (URL → audio stream + title + thumbnail), `audio-effects` (compressor, vocal-boost EQ) |
 | Backend | None — all resolving happens on-device. |
-| Tests | Unit: `lib/*.test.ts`, `stores/*.test.ts`. E2E (`e2e/`, Cucumber + Appium): scaffolded, no feature files yet. |
+| Tests | 62 unit tests (`npm test`): `lib/*.test.ts`, `stores/*.test.ts`. E2E (`e2e/`, Cucumber + Appium): scaffolded, no feature files yet. No component/UI tests. |
 
 ## 2. Problem & Goals
 
-**Problem:** Long spoken-word content on video sites forces the user to keep the screen on, burns data on video, and has weak background playback.
+**Problem:** Long spoken-word content on video sites forces the user to keep the screen on, burns data on video, and has weak background playback and no "continue where I left off" outside the site's own app.
 
 **Goals**
 1. Turn a pasted link into audio-only playback in as few steps as possible.
 2. Keep playing with the screen off, with lock-screen controls.
-3. Keep a personal library of saved links that survives restarts.
-4. Make speech clearer on phone speakers/earbuds (effects).
+3. Keep a personal library that survives restarts, with listening progress.
+4. Make speech clearer on phone speakers/earbuds (effects, speed).
 
 **Non-goals (today):** accounts/sync, downloads/offline, playlists/queue, search/discovery, RSS podcasts, iOS, social features.
 
 ## 3. Target User
 
-Someone who listens to talks, interviews and podcasts published as YouTube videos, mostly on an Android phone, often with the screen locked (commute, chores, sleep).
+Someone who listens to talks, interviews and podcasts published as YouTube videos, mostly on an Android phone, often with the screen locked (commute, chores, sleep), often in dim light.
 
 ## 4. Functional Requirements
 
@@ -40,139 +41,158 @@ Someone who listens to talks, interviews and podcasts published as YouTube video
 | F3 | Adding an already-saved URL is a silent no-op (modal closes) | Done |
 | F4 | Persist the library locally (AsyncStorage `saved-urls`), newest first | Done |
 | F5 | Migrate legacy entries stored as plain strings; backfill their titles on launch | Done |
-| F6 | Delete an item; if it is the playing track, stop playback | Done |
+| F6 | Delete an item (✕); if it is the playing track, stop playback | Done — no confirm/undo; saved progress is not removed |
 | F7 | Tap an item → load + autoplay, open Player screen | Done |
 | F8 | Re-opening the same track does not restart it (unless it is in error) | Done |
-| F9 | Play/pause, tap-to-seek on progress bar, elapsed/total time | Done |
+| F9 | Play/pause, elapsed/total time | Done |
 | F10 | Buffering and error states | Done |
 | F11 | Background playback + lock-screen controls with title/artwork | Done |
 | F12 | Ask `POST_NOTIFICATIONS` (Android 13+) once per session, after first playback starts; denial never blocks audio | Done |
-| F13 | Play even when the phone is on vibrate/silent | Done (`playsInSilentMode`) — not yet verified on device |
-| F14 | Compressor and Vocal-boost toggles; persist across tracks within a session | Done (not persisted across launches) |
-| F15 | Mini player on all screens except Player | Done |
+| F13 | Play even when the phone is on vibrate/silent | Done (`playsInSilentMode`) |
+| F14 | Compressor and Vocal-boost switches; kept across tracks within a session | Done — not persisted across launches |
+| F15 | Mini player above the tab bar on every tab; hidden on the Player screen | Done |
+| F16 | **Progress:** save position + duration per URL (`playback-progress`) about every 5 s of playback, and on pause, track switch and stop | Done |
+| F17 | **Resume:** re-opening an in-progress track seeks to the saved position; completed or barely-started tracks start at 0:00 | Done |
+| F18 | **Progress states:** *Unplayed* (< 5 s played), *In progress*, *Completed* (within 10 s of the end) | Done (`lib/playbackProgress.ts`) |
+| F19 | **Filter chips** All / Unplayed / In Progress / Completed with counts | Done |
+| F20 | **Paste bar:** read the clipboard and open the Add modal prefilled; if no valid link, open empty with a message | Done — user still confirms with Add |
+| F21 | **Bottom tabs** Home / Explore / Library / Downloads | Done — last three are "Coming soon" placeholders |
+| F22 | **Draggable scrubber** (tap or drag to seek, live time while dragging) | Done |
+| F23 | **Skip** back 15 s / forward 30 s, clamped to the track | Done (not on lock screen) |
+| F24 | **Playback speed** chip cycling 1× → 1.25× → 1.5× → 2× → 0.75×; reapplied to the next track | Done — not persisted across launches |
 
 ### Non-functional
-- **Performance:** list uses `FlatList`; player store updates only while phase is `ready`.
-- **Reliability:** stale resolve results are discarded if the user switched tracks (`loadTrack` URL check).
-- **Privacy:** no accounts, no analytics; library is on-device only.
-- **Legal/risk:** resolving YouTube streams with NewPipe/yt-dlp may violate YouTube ToS and breaks whenever YouTube changes; this blocks Play Store distribution as-is. Decide before any public release.
+- **Performance:** list uses `FlatList`; the player store updates its saved progress only when position moves ≥ 5 s.
+- **Reliability:** stale resolve results are discarded if the user switched tracks; the position of the old track is flushed before the next one loads so it is never credited to the wrong track; position updates are ignored until the resume seek lands.
+- **Privacy:** no accounts, no analytics; library and progress are on-device only.
+- **Legal/risk:** resolving YouTube streams with NewPipe may violate YouTube ToS and breaks whenever YouTube changes; this blocks Play Store distribution as-is. Decide before any public release.
+- **Release build:** R8 needs the keep rule in `modules/newpipe-resolver/android/consumer-rules.pro` (NewPipe's Rhino references `java.beans`).
 
 ## 5. Information Architecture
 
 ```
 Root Stack (app/_layout.tsx)
-├── /           Home — "Podcasts"   (app/index.tsx)
-├── /player     Player              (app/player.tsx)
-└── MiniPlayer  (global overlay under the stack, hidden on /player)
+├── (tabs)  Tabs with custom AppTabBar (app/(tabs)/_layout.tsx)
+│   ├── index      Home — "Podcasts"
+│   ├── explore    Coming soon
+│   ├── library    Coming soon
+│   └── downloads  Coming soon
+│   └── AppTabBar renders MiniPlayer directly above the tab buttons
+└── player  Player (pushed on top of the tabs, no tab bar)
 ```
 
-State: `usePlayerStore` (Zustand; phases `idle → resolving → ready | error`), plus `useSavedUrls` (library) and `useAddUrlModal` (modal form).
+State: `usePlayerStore` (Zustand; phases `idle → resolving → ready | error`; also holds `progressByUrl`, `enabledEffects`, `playbackRate`), `useSavedUrls` (library), `useAddUrlModal` (modal form + clipboard).
+Storage keys: `saved-urls`, `playback-progress`.
 
 ## 6. Screen Documentation
 
-### 6.1 Home — "Podcasts" (`app/index.tsx`)
+### 6.1 Home — "Podcasts" (`app/(tabs)/index.tsx`)
 
-**Purpose:** the library; entry point for adding and playing.
+**Purpose:** the library; entry point for adding, filtering and playing.
 
 | Element | Component | Behavior |
 |---|---|---|
-| Header | Stack header, title "Podcasts" | Static |
-| Load/save error banner | red `Text` at top | Shown for `Could not load your saved URLs` / `Could not save your URL`; never auto-clears |
-| List | `FlatList` of `SavedUrlItem` | Row = 96×54 thumbnail (grey placeholder if none), title (2 lines), URL (1 line, only if title ≠ URL), red ✕ |
-| Row tap | `SavedUrlItem.onPress` | `loadTrack(item)` then `router.push('/player')` |
-| ✕ tap | `SavedUrlItem.onDelete` | Deletes immediately (no confirm/undo); stops playback if it is the current track |
-| Empty state | `Text` | "Tap + to add a URL" |
-| FAB | `FloatingAddButton` (56px, blue, bottom-right) | Opens Add URL modal |
-| Add URL modal | `AddUrlModal` | See below |
+| Header | title "Podcasts" + "N saved" chip | N counts the whole library |
+| Paste bar | `PasteBar` | "Paste a YouTube or web audio link…" + **Paste**; tap anywhere reads the clipboard and opens the Add modal (prefilled if it holds an http(s) link) |
+| Filter chips | `FilterChips` (horizontal scroll) | All / Unplayed / In Progress / Completed, each with a count; hidden while the library is empty |
+| Load/save error banner | red text | `Could not load your saved URLs` / `Could not save your URL`; never auto-clears |
+| List | `FlatList` of `SavedUrlItem` | See card below |
+| Empty states | text | Empty library: "Tap Paste URL to add a link"; empty filter: "Nothing here yet" |
+| Sound Studio Engine | `EffectsPanel` (list footer) | Vocal boost + Compressor switches, "Active DSP" indicator when either is on |
+| FAB | `FloatingAddButton` "Paste URL" pill | Opens the empty Add modal |
 
-**Add URL modal** — title "Paste URL"; autofocused URL input (`keyboardType="url"`, no autocorrect/capitalize); Cancel / Add.
-States: *idle* → *submitting* ("Checking URL…" spinner, input + buttons disabled) → success closes and clears; *invalid* → "Enter a valid http(s) URL"; *resolve failed* → "Could not load this URL. Check the link and your connection."; typing clears the error. Keyboard "done" submits. Hardware back closes it.
+**Card (`SavedUrlItem`):** 120×96 thumbnail (placeholder if none) with a duration badge once known and a check overlay when completed; indigo host badge (e.g. `youtube.com`); title (3 lines); status line — *Now playing* (amber, plus amber border) / *Unplayed* (green) / *Xm played • N%* (amber) / *Completed* (muted, card dimmed); 4 px progress bar under in-progress and completed cards; ✕ delete (immediate).
+
+**Add URL modal** (`AddUrlModal`) — "Paste URL"; autofocused input; Cancel / Add. States: submitting ("Checking URL…"), invalid ("Enter a valid http(s) URL"), resolve failed ("Could not load this URL. Check the link and your connection."), no clipboard link ("No link found on the clipboard. Paste one below."). Typing clears the error; Back closes.
 
 ### 6.2 Player (`app/player.tsx`)
 
-**Purpose:** full playback controls for the current track.
+**Purpose:** full playback controls. Artwork and title in the upper area; controls in the lower part of the screen (thumb zone).
 
 | State (`phase`) | What the user sees |
 |---|---|
 | No track | "Nothing is playing" |
-| `resolving` | 16:9 thumbnail, title, large spinner + "Fetching audio info…" |
-| `error` | thumbnail, title, red error text (`Could not load audio for this URL`, or playback error). No retry button; going back and tapping the item again retries |
-| `ready`, not yet loaded | spinner + "Loading audio…" |
+| `resolving` | 16:9 artwork, host badge, title, spinner + "Fetching audio info…" |
+| `error` | artwork, title, red error text. No retry button — go back and tap the item again |
+| `ready`, not loaded | spinner + "Loading audio…" (also shows briefly while a far seek buffers) |
 | `ready` | Full `AudioPlayer` (below) |
 
-**`AudioPlayer`:** progress bar (24px, tap to seek via `seekToFraction`, no drag) → elapsed / total → buffering line ("Buffering…" with spinner, else green "Ready") → 64px circular Play/Pause → two text toggles "Compressor: On/Off" and "Vocal boost: On/Off". A failed seek/effect shows an inline error ("Could not seek in this audio" / "That audio effect is not available on this device"); it stays until the next track load.
+**`AudioPlayer`:** `Scrubber` (6 px track, amber fill, 16 px thumb growing to 22 px on touch; tap or drag; time label follows the finger) → elapsed / "Buffering…" (only while buffering) / total → transport row: ⟲15, Play/Pause (64 px, amber glow while playing), ⟳30 → speed chip (amber when ≠ 1×) → Sound Studio Engine switches. A failed seek/effect shows an inline error that stays until the next track load.
 
 ### 6.3 Mini Player (`components/MiniPlayer.tsx`)
 
-**Purpose:** persistent now-playing bar; hidden on `/player` and when no track.
-Layout: 2px progress line on top; 64×36 thumbnail; title (1 line); subtitle = "Fetching audio info…" / error text / "Buffering…" / "m:ss / m:ss"; Play/Pause button only when ready and loaded. Tapping the bar opens Player. Respects bottom safe-area inset.
+Floating pill inside `AppTabBar` (so only on tab screens): 40 px thumbnail, title, subtitle ("Fetching audio info…" / error / "Buffering…" / "m:ss / m:ss"), amber play/pause when ready, 2 px progress line on the bottom rim. Tapping opens the Player.
 
-### 6.4 Lock screen / notification
-Title and artwork are published via `setActiveForLockScreen`; cleared on `stop()`. Needs notification permission on Android 13+ to display.
+### 6.4 Placeholder tabs
+Explore, Library and Downloads show their title and "Coming soon" (`ComingSoonScreen`).
+
+### 6.5 Lock screen / notification
+Title and artwork are published via `setActiveForLockScreen`; cleared on `stop()`. Needs notification permission on Android 13+. Skip and speed are not exposed there.
 
 ## 7. Key Flows
 
-1. **Add & play:** Home → FAB → paste URL → Add → (resolve) → item appears at top → tap → Player autoplays.
-2. **Background:** start playback → press Home/lock → controls on lock screen → resume from notification.
-3. **Browse while listening:** Player → back → Home with Mini Player → tap bar to return.
-4. **Delete playing item:** ✕ → playback stops, Mini Player disappears.
+1. **Add & play:** Home → copy link → **Paste** → check prefilled link → Add → item appears on top → tap → Player autoplays.
+2. **Resume:** play, leave, relaunch → card shows "Xm played" → tap → continues from the saved position.
+3. **Background:** start playback → lock the phone → controls on the lock screen.
+4. **Browse while listening:** Player → back → Home with the mini-player above the tabs → tap it to return.
+5. **Triage:** filter chips → In Progress to continue, Unplayed to pick something new.
+6. **Delete playing item:** ✕ → playback stops, mini-player disappears.
 
-## 8. UI/UX Recommendations
+## 8. UI/UX Recommendations — status
 
-Ordered by value ÷ effort. Each cites what the code does today.
-
-### P0 — Fix gaps that affect everyday use
-| # | Issue today | Recommendation |
+| # | Recommendation | Status |
 |---|---|---|
-| 1 | **Delete is one tap on a small red ✕** with no confirm/undo; adjacent to the row's play tap | Swipe-to-delete (or long-press menu) + a snackbar with **Undo** (remove from storage only after it expires) |
-| 2 | **No resume position.** Reopening a track starts at 0:00; long episodes are the core use case | Persist `currentTime` per URL (throttled, e.g. every 5–10 s and on pause); show a thin progress bar on the row; resume on load |
-| 3 | **Progress bar is tap-only**, no dragging, no time preview | Draggable thumb with live time label; keep tap-to-seek |
-| 4 | **No skip controls.** Spoken content needs ±15/30 s | Add ⟲15 / 30⟳ buttons flanking Play (lock-screen too) |
-| 5 | **Player error has no action** | Add a **Retry** button on `error` phase (calls `loadTrack` again) and a human cause (offline vs. unavailable) |
-| 6 | **Errors never clear** (library banner, seek/effect errors persist) | Auto-dismiss toasts / clear on next successful action |
-| 7 | **Duplicate add silently closes the modal** | Say "Already in your library" and scroll/highlight the existing row |
+| 1 | Undo for delete (swipe + snackbar) | **Open** — chosen to defer; ✕ is still one tap with no undo |
+| 2 | Resume position | Done (F16–F18) |
+| 3 | Draggable seek | Done (F22) |
+| 4 | Skip controls | Done (F23) |
+| 5 | Retry button on player error | Open |
+| 6 | Errors that auto-clear | Open |
+| 7 | Feedback when adding a duplicate | Open |
+| 8 | Friendly empty state (icon + CTA) | Partial — text only |
+| 9 | Paste button / Android Share target | Paste done (F20); Share target open |
+| 10 | Remove permanent "Ready" label | Done |
+| 11 | Playback speed | Done (F24) |
+| 12 | Effects as switches with help text | Done; persistence across launches open |
+| 13 | Player layout / thumb-zone controls | Done |
+| 14 | Theme tokens | Done (`lib/theme.ts`) |
+| 15 | Mini-player slide-in animation | Open |
+| 16 | Dark mode | Done (dark only) |
+| 17 | Accessibility roles | Partial — switches and buttons labeled; scrubber has no slider role/actions |
+| 18 | Text contrast | Open — `textMuted` `#64748B` on `#0F1115` is roughly 3.9:1 (estimate, not measured), below AA for small text |
+| 19 | 48 dp touch targets | Partial — ✕ and filter chips use `hitSlop`; verify |
+| 20 | Group row + delete for screen readers | Open |
+| 21 | Large header / tabular numerals | Partial — tabular numerals done |
 
-### P1 — Polish & clarity
-| # | Issue today | Recommendation |
-|---|---|---|
-| 8 | Screen title "Podcasts" but items are links; empty state is only a line of grey text | Friendly empty state: icon, "Add your first episode", primary button, hint "Paste a YouTube link" |
-| 9 | Add modal makes the user switch to a browser and back | **Paste** button reading the clipboard; auto-prefill if clipboard holds a URL; and register as an Android **Share target** so "Share → Podcast Player" adds directly |
-| 10 | "Ready" (green) is always shown under the bar — noise | Show status only when something is wrong/buffering; use the space for playback speed |
-| 11 | No **playback speed** | 0.75×–2× chip next to the time row; remember per track |
-| 12 | Effects are unexplained text toggles ("Compressor: Off") | Use real switches in an "Audio enhancements" card with one-line help: *Compressor — evens out loud and quiet parts*, *Vocal boost — emphasizes speech*. Remember the choice across launches |
-| 13 | Player screen is vertically centered and bare | Large artwork top, title (2 lines) + channel/duration, controls anchored to the lower third, thumb-reachable |
-| 14 | Play button and Mini Player icon are the only filled affordances; FAB and primary actions share one blue with no system | Define tokens (colors, spacing, radius, type scale) in one `theme` file; today hex values are repeated per component |
-| 15 | Mini Player appears with no transition, could cover the FAB's reach | Slide-in animation; offset FAB above the Mini Player when visible |
+**Not built, from `DESIGN.md`/mockup:** buffered-range bar on the scrubber (the player does not report a buffered position), search / cast / profile bar, ⋮ row menu, download buttons, "New Episode" tag, Skip Silence, light theme.
 
-### P2 — Accessibility & platform
-| # | Issue today | Recommendation |
-|---|---|---|
-| 16 | `userInterfaceStyle: "light"` — no dark mode; listening is often at night | Support dark theme via `useColorScheme` + tokens |
-| 17 | Progress bar has no semantics; effect toggles have no role/state | `accessibilityRole="adjustable"` + value text on the bar with increment/decrement actions; `accessibilityRole="switch"` + `checked` on toggles |
-| 18 | Secondary text `#777` on white ≈ 4.5:1 (borderline AA); placeholder `#9ca3af` weaker | Darken to ≥ `#595959`; verify with a contrast checker |
-| 19 | Touch targets: ✕ is ~40×32, toggles ~36 high | Min 48×48 dp (use `hitSlop` or padding) |
-| 20 | Row `Pressable` and nested delete `Pressable` both announce separately | Group row as one accessible element with a custom "Delete" action |
-| 21 | Native header with default styling | Large title, tabular numerals for time, consistent app-bar color |
+## 9. Known Limitations
+- Saved progress survives deleting an item (orphan entry; re-adding the link resumes it).
+- A seek to an unbuffered position briefly replaces the controls with "Loading audio…".
+- A pause from the lock screen or notification is not flushed, so up to 5 s of position can be lost.
+- A stale position event right after the resume seek could briefly save 0 (guarded, unverified on device).
+- A track's duration is only known after ~5 s of playback, so new cards have no duration badge until then.
+- Effects and speed reset on every launch.
 
-### P3 — Features to consider (product decisions, not UX fixes)
-Queue / autoplay next · sleep timer · per-item "played" state · search/sort/folders · pull-to-refresh to re-backfill titles · RSS support · offline downloads.
+## 10. Open Questions
 
-## 9. Open Questions
-
-1. Is distribution public? (YouTube ToS risk for NewPipe/yt-dlp — see §4.)
+1. Is distribution public? (YouTube ToS risk — see §4.)
 2. iOS in scope? If yes, both native modules need Swift equivalents and `requireNativeModule` needs a guard.
-3. Should audio-effect state persist across launches?
-4. Should the library hold only YouTube links, or any audio URL?
+3. Should effects and speed persist across launches?
+4. Should the library hold only YouTube links, or any audio URL? (Paste bar copy says "YouTube or web audio".)
+5. What should Explore, Library and Downloads become — or should they be removed?
 
-## 10. Success Metrics (suggested)
+## 11. Success Metrics (suggested)
 
 - Time from opening the app to audio playing for a new link < 15 s (p50).
 - Resolve failure rate < 5 %.
 - Share of sessions that continue playback with screen off > 40 %.
+- Share of started tracks that are resumed rather than restarted.
 - Crash-free sessions > 99.5 %.
 
-## 11. Suggested Phasing for the UX work
+## 12. Delivery History
 
-1. **Phase 1 (P0):** Undo-delete, resume position, retry, skip ±, draggable seek, error auto-clear, duplicate feedback.
-2. **Phase 2 (P1):** Empty state, paste/share-target, speed, effects card, player layout, theme tokens.
-3. **Phase 3 (P2):** Dark mode, accessibility pass.
+1. **Phase 1:** dark theme, fonts, Home card list, floating Paste URL pill, floating mini-player, effect cards.
+2. **Phase 2:** progress and resume, filter chips, paste bar, bottom tabs.
+3. **Phase 3:** Player redesign (scrubber, skip, speed), this document.
+4. **Candidates:** swipe-to-delete with undo, retry and error clearing, Share target, accessibility pass, persisted effects/speed.

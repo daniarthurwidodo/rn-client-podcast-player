@@ -16,6 +16,7 @@ const expoAudioPlayerPort: AudioPlayerPort = {
   play: () => audioPlayer.play(),
   pause: () => audioPlayer.pause(),
   seekTo: (seconds) => audioPlayer.seekTo(seconds),
+  setPlaybackRate: (rate) => audioPlayer.setPlaybackRate(rate),
   setEffectEnabled: (effect, enabled) => setEffectEnabled(audioPlayer.id, effect, enabled),
   // doNotMix is required for the lock-screen controls to attach to this player.
   // playsInSilentMode must be explicit: expo-audio refuses play() on Android while the ringer is on vibrate/mute.
