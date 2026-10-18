@@ -7,7 +7,7 @@ import { usePlayerStore } from '../../business/player/playerStore';
 
 const ROW_HEIGHT = 48;
 const PLAYING_ICON_SIZE = 16;
-const CENTER_IN_VIEW = 0.5;
+const CURRENT_AT_TOP = 0;
 
 export function PlaylistPanel() {
   const queue = usePlayerStore((state) => state.queue);
@@ -17,7 +17,7 @@ export function PlaylistPanel() {
   const currentIndex = queue?.index ?? 0;
 
   useEffect(() => {
-    if (hasQueue) listRef.current?.scrollToIndex({ index: currentIndex, viewPosition: CENTER_IN_VIEW, animated: true });
+    if (hasQueue) listRef.current?.scrollToIndex({ index: currentIndex, viewPosition: CURRENT_AT_TOP, animated: true });
   }, [hasQueue, currentIndex]);
 
   if (!queue) return null;

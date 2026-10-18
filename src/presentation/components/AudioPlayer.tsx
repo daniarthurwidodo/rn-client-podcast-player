@@ -7,17 +7,13 @@ import { usePlayerStore } from '../../business/player/playerStore';
 import { QueueButton } from './QueueButton';
 import { Scrubber } from './Scrubber';
 import { SkipButton } from './SkipButton';
-import { ErrorMessage, LoadingMessage } from './StatusMessage';
+import { ErrorMessage } from './StatusMessage';
 
-const LOADING_AUDIO_MESSAGE = 'Loading audio...';
 const BUFFERING_MESSAGE = 'Buffering...';
 const SKIP_BACK_SECONDS = 15;
 const SKIP_FORWARD_SECONDS = 30;
-const PLAY_BUTTON_SIZE = 64;
-const PLAY_ICON_SIZE = 30;
-const GLOW_OPACITY = 0.4;
-const GLOW_RADIUS = 8;
-const GLOW_ELEVATION = 8;
+const PLAY_BUTTON_SIZE = 72;
+const PLAY_ICON_SIZE = 32;
 
 export function AudioPlayer() {
   const isLoaded = usePlayerStore((state) => state.isLoaded);
@@ -42,8 +38,6 @@ export function AudioPlayer() {
 
   const [scrubFraction, setScrubFraction] = useState<number | null>(null);
 
-  if (!isLoaded) return <LoadingMessage message={LOADING_AUDIO_MESSAGE} />;
-
   const progressFraction = duration > 0 ? currentTime / duration : 0;
   const shownTime = scrubFraction === null ? currentTime : scrubFraction * duration;
   const PlaybackIcon = isPlaying ? Pause : Play;
@@ -56,16 +50,37 @@ export function AudioPlayer() {
           <ErrorMessage message={notice} />
         </Pressable>
       ) : null}
-      <Scrubber fraction={scrubFraction ?? progressFraction} onScrubChange={setScrubFraction} onSeek={seekToFraction} />
-      <View style={styles.times}>
-        <Text testID="current-time" style={styles.time}>{formatTime(shownTime)}</Text>
-        <View style={styles.buffering}>
-          {isBuffering ? <ActivityIndicator size="small" color={colors.primary} /> : null}
-          {isBuffering ? <Text style={styles.bufferingLabel}>{BUFFERING_MESSAGE}</Text> : null}
+      {/* Hidden, not removed, while the audio loads, so the controls below keep their place. */}
+      <View style={[styles.progress, isLoaded ? null : styles.progressHidden]} pointerEvents={isLoaded ? 'auto' : 'none'}>
+        <Scrubber fraction={scrubFraction ?? progressFraction} onScrubChange={setScrubFraction} onSeek={seekToFraction} />
+        <View style={styles.times}>
+          <Text testID="current-time" style={styles.time}>{formatTime(shownTime)}</Text>
+          <View style={styles.buffering}>
+            {isBuffering ? <ActivityIndicator size="small" color={colors.primary} /> : null}
+            {isBuffering ? <Text style={styles.bufferingLabel}>{BUFFERING_MESSAGE}</Text> : null}
+          </View>
+          <Text testID="duration-time" style={styles.time}>{formatTime(duration)}</Text>
         </View>
-        <Text testID="duration-time" style={styles.time}>{formatTime(duration)}</Text>
       </View>
-      <View style={styles.transport}>
+      <View style={[styles.mainRow, hasQueue ? null : styles.mainRowCentered]}>
+        {hasQueue ? (
+          <QueueButton Icon={Shuffle} accessibilityLabel={`Shuffle ${isShuffled ? 'on' : 'off'}`} isActive={isShuffled} onPress={toggleShuffle} />
+        ) : null}
+        {hasQueue ? <QueueButton Icon={SkipBack} accessibilityLabel="Previous track" onPress={playPrevious} /> : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
+          style={styles.playButton}
+          onPress={togglePlayback}
+        >
+          <PlaybackIcon color={colors.onPrimary} fill={colors.onPrimary} size={PLAY_ICON_SIZE} />
+        </Pressable>
+        {hasQueue ? <QueueButton Icon={SkipForward} accessibilityLabel="Next track" onPress={playNext} /> : null}
+        {hasQueue ? (
+          <QueueButton Icon={RepeatIcon} accessibilityLabel={`Repeat ${repeatMode}`} isActive={repeatMode !== 'off'} onPress={cycleRepeat} />
+        ) : null}
+      </View>
+      <View style={styles.secondaryRow}>
         <SkipButton
           Icon={RotateCcw}
           seconds={SKIP_BACK_SECONDS}
@@ -74,11 +89,11 @@ export function AudioPlayer() {
         />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
-          style={[styles.playButton, isPlaying ? styles.playButtonGlow : null]}
-          onPress={togglePlayback}
+          accessibilityLabel={`Playback speed ${playbackRate}x`}
+          style={[styles.speedChip, playbackRate === 1 ? null : styles.speedChipActive]}
+          onPress={cyclePlaybackRate}
         >
-          <PlaybackIcon color={colors.onPrimary} fill={colors.onPrimary} size={PLAY_ICON_SIZE} />
+          <Text style={playbackRate === 1 ? styles.speedLabel : styles.speedLabelActive}>{`${playbackRate}×`}</Text>
         </Pressable>
         <SkipButton
           Icon={RotateCw}
@@ -87,35 +102,20 @@ export function AudioPlayer() {
           onPress={() => skipBySeconds(SKIP_FORWARD_SECONDS)}
         />
       </View>
-      <View style={styles.secondaryRow}>
-        {hasQueue ? (
-          <QueueButton Icon={Shuffle} accessibilityLabel={`Shuffle ${isShuffled ? 'on' : 'off'}`} isActive={isShuffled} onPress={toggleShuffle} />
-        ) : null}
-        {hasQueue ? <QueueButton Icon={SkipBack} accessibilityLabel="Previous track" onPress={playPrevious} /> : null}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Playback speed ${playbackRate}x`}
-          style={[styles.speedChip, playbackRate === 1 ? null : styles.speedChipActive]}
-          onPress={cyclePlaybackRate}
-        >
-          <Text style={playbackRate === 1 ? styles.speedLabel : styles.speedLabelActive}>{`${playbackRate}×`}</Text>
-        </Pressable>
-        {hasQueue ? <QueueButton Icon={SkipForward} accessibilityLabel="Next track" onPress={playNext} /> : null}
-        {hasQueue ? (
-          <QueueButton Icon={RepeatIcon} accessibilityLabel={`Repeat ${repeatMode}`} isActive={repeatMode !== 'off'} onPress={cycleRepeat} />
-        ) : null}
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { alignSelf: 'stretch', alignItems: 'center' },
+  progress: { alignSelf: 'stretch' },
+  progressHidden: { opacity: 0 },
   times: { alignSelf: 'stretch', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   time: { color: colors.textSupporting, fontFamily: fonts.labelMedium, fontSize: 13, letterSpacing: 0.5, fontVariant: ['tabular-nums'] },
   buffering: { flexDirection: 'row', alignItems: 'center' },
   bufferingLabel: { color: colors.primary, fontFamily: fonts.body, fontSize: 12, marginLeft: spacing.sm },
-  transport: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, marginTop: spacing.md },
+  mainRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', alignSelf: 'stretch', marginTop: spacing.sm },
+  mainRowCentered: { justifyContent: 'center' },
   playButton: {
     width: PLAY_BUTTON_SIZE,
     height: PLAY_BUTTON_SIZE,
@@ -124,7 +124,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  playButtonGlow: { shadowColor: colors.primary, shadowOpacity: GLOW_OPACITY, shadowRadius: GLOW_RADIUS, elevation: GLOW_ELEVATION },
   speedChip: {
     height: 32,
     paddingHorizontal: spacing.md,
@@ -134,7 +133,7 @@ const styles = StyleSheet.create({
     borderColor: colors.stroke,
     backgroundColor: colors.surface,
   },
-  secondaryRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + spacing.xs, marginTop: spacing.md },
+  secondaryRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg, marginTop: spacing.xs },
   speedChipActive: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
   speedLabel: { color: colors.textSupporting, fontFamily: fonts.labelSemiBold, fontSize: 14 },
   speedLabelActive: { color: colors.primary, fontFamily: fonts.labelSemiBold, fontSize: 14 },

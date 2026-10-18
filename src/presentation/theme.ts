@@ -30,4 +30,4 @@ export const fonts = {
 
 export const radii = { card: 24, sheet: 32, pill: 9999 } as const;
 
-export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 } as const;
+export const spacing = { xs: 6, sm: 8, md: 16, lg: 24, xl: 32 } as const;

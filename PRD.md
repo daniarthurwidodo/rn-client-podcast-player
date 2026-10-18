@@ -134,12 +134,14 @@ Design record: `documentation/tehnical-solution/three layer architecture.md`.
 | State (`phase`) | What the user sees |
 |---|---|
 | No track | "Nothing is playing" |
-| `resolving` | 16:9 artwork, host badge, title, spinner + "Fetching audio info…" |
+| `resolving` | 16:9 artwork, title, "host • genres" subtitle, spinner + "Fetching audio info…" |
 | `error` | artwork, title, red error text and an amber **Retry** button (reloads the track, resuming the saved position). The error stays until retried |
-| `ready`, not loaded | spinner + "Loading audio…" (also shows briefly while a far seek buffers) |
+| `ready`, not loaded | the full `AudioPlayer` with only the progress bar and the elapsed/total times hidden (they keep their space, so nothing moves); play/pause, skip, queue buttons and the playlist stay visible. Also happens briefly while a far seek buffers |
 | `ready` | Full `AudioPlayer` (below) |
 
-**`AudioPlayer`:** `Scrubber` (6 px track, amber fill, 16 px thumb growing to 22 px on touch; tap or drag; time label follows the finger) → elapsed / "Buffering…" (only while buffering) / total → transport row: ⟲15, Play/Pause (64 px, amber glow while playing), ⟳30 → speed chip (amber when ≠ 1×). A failed seek or progress save shows an inline notice that clears after 5 s, on tap, when the same action next succeeds, or on the next track load.
+**Layout (minimalist, modelled on `design-reference/music-player-reference.png`):** pinned to the top: 16:9 rounded artwork → bold title (2 lines) → subtitle "host • genres" → controls area of fixed height (so the playlist below never moves between states) → the playlist panel fills the rest.
+
+**`AudioPlayer`:** `Scrubber` (6 px track, amber fill, 16 px thumb growing to 22 px on touch; tap or drag; time label follows the finger) → elapsed / "Buffering…" (only while buffering) / total → main row: big Play/Pause (72 px, amber), plus icon-only shuffle, previous, next and repeat on either side **while a playlist plays** (a single track shows just Play/Pause, centred) → small secondary row: ⟲15, speed chip (amber when ≠ 1×), ⟳30. A failed seek or progress save shows an inline notice that clears after 5 s, on tap, when the same action next succeeds, or on the next track load.
 
 ### 6.3 Mini Player (`src/presentation/components/MiniPlayer.tsx`)
 
@@ -190,7 +192,7 @@ Title and artwork are published via `setActiveForLockScreen`; cleared on `stop()
 
 ## 9. Known Limitations
 - Saved progress survives deleting an item (orphan entry; re-adding the link resumes it).
-- A seek to an unbuffered position briefly replaces the controls with "Loading audio…".
+- A seek to an unbuffered position briefly hides the progress bar and times (the controls stay).
 - A pause from the lock screen or notification is not flushed, so up to 5 s of position can be lost.
 - A stale position event right after the resume seek could briefly save 0 (guarded, unverified on device).
 - A track's duration is only known after ~5 s of playback, so new cards have no duration badge until then.

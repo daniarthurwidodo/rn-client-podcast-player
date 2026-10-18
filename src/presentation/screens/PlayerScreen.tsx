@@ -4,13 +4,15 @@ import { AudioPlayer } from '../components/AudioPlayer';
 import { PlaylistPanel } from '../components/PlaylistPanel';
 import { ErrorMessage, LoadingMessage } from '../components/StatusMessage';
 import { getHostLabel } from '../format/hostLabel';
-import { colors, fonts, radii, spacing } from '../theme';
+import { colors, fonts, spacing } from '../theme';
 import { usePlayerStore } from '../../business/player/playerStore';
 
 const FETCHING_INFO_MESSAGE = 'Fetching audio info...';
 const NOTHING_PLAYING_MESSAGE = 'Nothing is playing';
-// Tall enough for the full controls, so the playlist below does not jump when the track finishes loading.
-const CONTROLS_MIN_HEIGHT = 196;
+const SUBTITLE_SEPARATOR = ' • ';
+const THUMBNAIL_RADIUS = 12;
+// The height of the full controls (progress, main row, secondary row), so the playlist below does not jump between states.
+const CONTROLS_MIN_HEIGHT = 186;
 
 export default function PlayerScreen() {
   const insets = useSafeAreaInsets();
@@ -30,18 +32,13 @@ export default function PlayerScreen() {
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom + spacing.md }]}>
       <View style={styles.details}>
-        {track.thumbnailUrl ? <Image source={{ uri: track.thumbnailUrl }} style={styles.thumbnail} /> : null}
-        <View style={styles.badges}>
-          <View style={styles.sourceBadge}>
-            <Text style={styles.sourceLabel}>{getHostLabel(track.url)}</Text>
-          </View>
-          {track.genres.map((genre) => (
-            <View key={genre} style={styles.genreBadge}>
-              <Text style={styles.genreLabel} numberOfLines={1}>{genre}</Text>
-            </View>
-          ))}
-        </View>
-        <Text style={styles.title} numberOfLines={3}>{track.title}</Text>
+        {track.thumbnailUrl ? (
+          <Image source={{ uri: track.thumbnailUrl }} style={styles.thumbnail} />
+        ) : (
+          <View style={[styles.thumbnail, styles.thumbnailPlaceholder]} />
+        )}
+        <Text style={styles.title} numberOfLines={2}>{track.title}</Text>
+        <Text style={styles.subtitle} numberOfLines={1}>{[getHostLabel(track.url), ...track.genres].join(SUBTITLE_SEPARATOR)}</Text>
       </View>
       <View style={styles.controls}>
         {phase === 'resolving' ? <LoadingMessage message={FETCHING_INFO_MESSAGE} /> : null}
@@ -58,24 +55,9 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', justifyContent: 'center' },
   emptyLabel: { color: colors.textSupporting, fontFamily: fonts.body },
   details: { flexShrink: 1 },
-  thumbnail: { alignSelf: 'stretch', aspectRatio: 16 / 9, flexShrink: 1, borderRadius: radii.sheet },
-  badges: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
-  sourceBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.pill,
-    backgroundColor: colors.secondaryTint,
-  },
-  genreBadge: {
-    maxWidth: '100%',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: colors.stroke,
-  },
-  genreLabel: { color: colors.textSupporting, fontFamily: fonts.labelSemiBold, fontSize: 11 },
-  sourceLabel: { color: colors.secondaryText, fontFamily: fonts.labelSemiBold, fontSize: 11 },
-  title: { color: colors.textHigh, fontFamily: fonts.headlineSemiBold, fontSize: 22, lineHeight: 28, letterSpacing: -0.3, marginTop: spacing.sm },
+  thumbnail: { alignSelf: 'stretch', aspectRatio: 16 / 9, flexShrink: 1, borderRadius: THUMBNAIL_RADIUS },
+  thumbnailPlaceholder: { backgroundColor: colors.surfaceElevated },
+  title: { color: colors.textHigh, fontFamily: fonts.headlineBold, fontSize: 22, lineHeight: 28, letterSpacing: -0.3, marginTop: spacing.md },
+  subtitle: { color: colors.textSupporting, fontFamily: fonts.body, fontSize: 14, marginTop: spacing.xs },
   controls: { minHeight: CONTROLS_MIN_HEIGHT, marginTop: spacing.md },
 });
