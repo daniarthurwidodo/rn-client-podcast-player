@@ -4,7 +4,6 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { formatTime } from '../lib/formatTime';
 import { colors, fonts, radii, spacing } from '../lib/theme';
 import { usePlayerStore } from '../stores/playerStore';
-import { EffectsPanel } from './EffectsPanel';
 import { Scrubber } from './Scrubber';
 import { SkipButton } from './SkipButton';
 import { ErrorMessage, LoadingMessage } from './StatusMessage';
@@ -82,9 +81,6 @@ export function AudioPlayer() {
       >
         <Text style={playbackRate === 1 ? styles.speedLabel : styles.speedLabelActive}>{`${playbackRate}×`}</Text>
       </Pressable>
-      <View style={styles.effects}>
-        <EffectsPanel />
-      </View>
     </View>
   );
 }
@@ -118,5 +114,4 @@ const styles = StyleSheet.create({
   speedChipActive: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
   speedLabel: { color: colors.textSupporting, fontFamily: fonts.labelSemiBold, fontSize: 14 },
   speedLabelActive: { color: colors.primary, fontFamily: fonts.labelSemiBold, fontSize: 14 },
-  effects: { alignSelf: 'stretch', marginTop: spacing.lg },
 });

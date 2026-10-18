@@ -4,9 +4,7 @@ import { useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddUrlModal } from '../../components/AddUrlModal';
-import { EffectsPanel } from '../../components/EffectsPanel';
 import { FilterChips } from '../../components/FilterChips';
-import { FloatingAddButton } from '../../components/FloatingAddButton';
 import { PasteBar } from '../../components/PasteBar';
 import { SavedUrlItem } from '../../components/SavedUrlItem';
 import { useAddUrlModal } from '../../hooks/useAddUrlModal';
@@ -70,7 +68,6 @@ export default function HomeScreen() {
         contentContainerStyle={styles.list}
         ItemSeparatorComponent={ItemSeparator}
         ListEmptyComponent={<Text style={styles.empty}>{isLibraryEmpty ? EMPTY_LIBRARY_MESSAGE : EMPTY_FILTER_MESSAGE}</Text>}
-        ListFooterComponent={<View style={styles.effects}><EffectsPanel /></View>}
         renderItem={({ item }) => (
           <SavedUrlItem
             item={item}
@@ -81,7 +78,6 @@ export default function HomeScreen() {
           />
         )}
       />
-      <FloatingAddButton onPress={addUrl.open} />
       <AddUrlModal
         isVisible={addUrl.isVisible}
         isSubmitting={addUrl.isSubmitting}
@@ -109,7 +105,6 @@ const styles = StyleSheet.create({
   countLabel: { color: colors.textSupporting, fontFamily: fonts.labelSemiBold, fontSize: 12 },
   list: { paddingHorizontal: spacing.md, paddingBottom: LIST_BOTTOM_CLEARANCE },
   separator: { height: spacing.sm },
-  effects: { marginTop: spacing.lg },
   empty: { textAlign: 'center', color: colors.textSupporting, fontFamily: fonts.body, marginTop: spacing.xl },
   error: { color: colors.error, fontFamily: fonts.body, paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
 });
