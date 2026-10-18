@@ -37,7 +37,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "node --test \"src/**/*.test.ts\"",
-    "lint": "expo lint src"
+    "lint": "expo lint src",
+    "build:apk": "cd android && ./gradlew assembleRelease"
   },
   "private": true
 }
