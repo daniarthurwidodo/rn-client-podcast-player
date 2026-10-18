@@ -1,9 +1,10 @@
-import { Pause, Play, RotateCcw, RotateCw } from 'lucide-react-native';
+import { Pause, Play, Repeat, Repeat1, RotateCcw, RotateCw, Shuffle, SkipBack, SkipForward } from 'lucide-react-native';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatTime } from '../lib/formatTime';
 import { colors, fonts, radii, spacing } from '../lib/theme';
 import { usePlayerStore } from '../stores/playerStore';
+import { QueueButton } from './QueueButton';
 import { Scrubber } from './Scrubber';
 import { SkipButton } from './SkipButton';
 import { ErrorMessage, LoadingMessage } from './StatusMessage';
@@ -31,6 +32,13 @@ export function AudioPlayer() {
   const skipBySeconds = usePlayerStore((state) => state.skipBySeconds);
   const cyclePlaybackRate = usePlayerStore((state) => state.cyclePlaybackRate);
   const clearNotice = usePlayerStore((state) => state.clearNotice);
+  const hasQueue = usePlayerStore((state) => state.queue !== null);
+  const playNext = usePlayerStore((state) => state.playNext);
+  const playPrevious = usePlayerStore((state) => state.playPrevious);
+  const repeatMode = usePlayerStore((state) => state.repeatMode);
+  const isShuffled = usePlayerStore((state) => state.isShuffled);
+  const cycleRepeat = usePlayerStore((state) => state.cycleRepeat);
+  const toggleShuffle = usePlayerStore((state) => state.toggleShuffle);
 
   const [scrubFraction, setScrubFraction] = useState<number | null>(null);
 
@@ -39,6 +47,7 @@ export function AudioPlayer() {
   const progressFraction = duration > 0 ? currentTime / duration : 0;
   const shownTime = scrubFraction === null ? currentTime : scrubFraction * duration;
   const PlaybackIcon = isPlaying ? Pause : Play;
+  const RepeatIcon = repeatMode === 'one' ? Repeat1 : Repeat;
 
   return (
     <View style={styles.container}>
@@ -78,14 +87,24 @@ export function AudioPlayer() {
           onPress={() => skipBySeconds(SKIP_FORWARD_SECONDS)}
         />
       </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Playback speed ${playbackRate}x`}
-        style={[styles.speedChip, playbackRate === 1 ? null : styles.speedChipActive]}
-        onPress={cyclePlaybackRate}
-      >
-        <Text style={playbackRate === 1 ? styles.speedLabel : styles.speedLabelActive}>{`${playbackRate}×`}</Text>
-      </Pressable>
+      <View style={styles.secondaryRow}>
+        {hasQueue ? (
+          <QueueButton Icon={Shuffle} accessibilityLabel={`Shuffle ${isShuffled ? 'on' : 'off'}`} isActive={isShuffled} onPress={toggleShuffle} />
+        ) : null}
+        {hasQueue ? <QueueButton Icon={SkipBack} accessibilityLabel="Previous track" onPress={playPrevious} /> : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Playback speed ${playbackRate}x`}
+          style={[styles.speedChip, playbackRate === 1 ? null : styles.speedChipActive]}
+          onPress={cyclePlaybackRate}
+        >
+          <Text style={playbackRate === 1 ? styles.speedLabel : styles.speedLabelActive}>{`${playbackRate}×`}</Text>
+        </Pressable>
+        {hasQueue ? <QueueButton Icon={SkipForward} accessibilityLabel="Next track" onPress={playNext} /> : null}
+        {hasQueue ? (
+          <QueueButton Icon={RepeatIcon} accessibilityLabel={`Repeat ${repeatMode}`} isActive={repeatMode !== 'off'} onPress={cycleRepeat} />
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -108,7 +127,6 @@ const styles = StyleSheet.create({
   playButtonGlow: { shadowColor: colors.primary, shadowOpacity: GLOW_OPACITY, shadowRadius: GLOW_RADIUS, elevation: GLOW_ELEVATION },
   speedChip: {
     height: 32,
-    marginTop: spacing.md,
     paddingHorizontal: spacing.md,
     justifyContent: 'center',
     borderRadius: radii.pill,
@@ -116,6 +134,7 @@ const styles = StyleSheet.create({
     borderColor: colors.stroke,
     backgroundColor: colors.surface,
   },
+  secondaryRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + spacing.xs, marginTop: spacing.md },
   speedChipActive: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
   speedLabel: { color: colors.textSupporting, fontFamily: fonts.labelSemiBold, fontSize: 14 },
   speedLabelActive: { color: colors.primary, fontFamily: fonts.labelSemiBold, fontSize: 14 },

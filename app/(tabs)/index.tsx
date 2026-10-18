@@ -1,16 +1,19 @@
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddUrlModal } from '../../components/AddUrlModal';
 import { FilterChips } from '../../components/FilterChips';
+import { GenreChips } from '../../components/GenreChips';
+import { GenrePlayActions } from '../../components/GenrePlayActions';
+import { GenreSheet } from '../../components/GenreSheet';
 import { PasteBar } from '../../components/PasteBar';
 import { SavedUrlItem } from '../../components/SavedUrlItem';
 import { useAddUrlModal } from '../../hooks/useAddUrlModal';
+import { useGenreEditor } from '../../hooks/useGenreEditor';
+import { useLibraryView } from '../../hooks/useLibraryView';
 import { useSavedUrls } from '../../hooks/useSavedUrls';
-import { countByFilter, filterByProgress } from '../../lib/playbackProgress';
-import type { LibraryFilter } from '../../lib/playbackProgress';
+import { isSameGenre } from '../../lib/genres';
 import type { SavedUrl } from '../../lib/savedUrl';
 import { colors, fonts, radii, spacing } from '../../lib/theme';
 import { usePlayerStore } from '../../stores/playerStore';
@@ -30,17 +33,25 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const savedUrls = useSavedUrls();
   const addUrl = useAddUrlModal(savedUrls.addUrl, Clipboard.getStringAsync);
-  const [filter, setFilter] = useState<LibraryFilter>('all');
   const playingUrl = usePlayerStore((state) => state.track?.url);
   const progressByUrl = usePlayerStore((state) => state.progressByUrl);
   const loadTrack = usePlayerStore((state) => state.loadTrack);
+  const playQueue = usePlayerStore((state) => state.playQueue);
   const stopPlayback = usePlayerStore((state) => state.stop);
 
+  const library = useLibraryView(savedUrls.savedUrls, progressByUrl);
+  const genreEditor = useGenreEditor(savedUrls.savedUrls);
   const isLibraryEmpty = savedUrls.savedUrls.length === 0;
-  const visibleUrls = filterByProgress(savedUrls.savedUrls, progressByUrl, filter);
+  const editingGenres = genreEditor.editingItem?.genres ?? [];
+  const genreSuggestions = library.genreCounts.map((genre) => genre.name).filter((name) => !editingGenres.some((genre) => isSameGenre(genre, name)));
 
   const openPlayer = (item: SavedUrl) => {
     loadTrack(item);
+    router.push(PLAYER_PATH);
+  };
+
+  const playGenre = (shuffle: boolean) => {
+    playQueue(library.visibleUrls, { shuffle });
     router.push(PLAYER_PATH);
   };
 
@@ -59,11 +70,17 @@ export default function HomeScreen() {
       </View>
       <PasteBar onPaste={addUrl.openFromClipboard} />
       {isLibraryEmpty ? null : (
-        <FilterChips counts={countByFilter(savedUrls.savedUrls, progressByUrl)} selected={filter} onSelect={setFilter} />
+        <FilterChips counts={library.progressCounts} selected={library.filter} onSelect={library.setFilter} />
+      )}
+      {library.genreCounts.length === 0 ? null : (
+        <GenreChips genres={library.genreCounts} selected={library.selectedGenre} onSelect={library.toggleGenre} />
+      )}
+      {library.selectedGenre === null || library.visibleUrls.length === 0 ? null : (
+        <GenrePlayActions onPlay={() => playGenre(false)} onShuffle={() => playGenre(true)} />
       )}
       {savedUrls.errorMessage ? <Text style={styles.error}>{savedUrls.errorMessage}</Text> : null}
       <FlatList
-        data={visibleUrls}
+        data={library.visibleUrls}
         keyExtractor={(item) => item.url}
         contentContainerStyle={styles.list}
         ItemSeparatorComponent={ItemSeparator}
@@ -75,6 +92,7 @@ export default function HomeScreen() {
             isCurrent={item.url === playingUrl}
             onPress={openPlayer}
             onDelete={deleteUrl}
+            onEditGenres={genreEditor.open}
           />
         )}
       />
@@ -86,6 +104,14 @@ export default function HomeScreen() {
         onChangeInput={addUrl.changeInput}
         onSubmit={addUrl.submit}
         onClose={addUrl.close}
+      />
+      <GenreSheet
+        isVisible={genreEditor.editingItem !== null}
+        item={genreEditor.editingItem}
+        suggestions={genreSuggestions}
+        onAdd={(genre) => genreEditor.editingItem && savedUrls.addItemGenre(genreEditor.editingItem.url, genre)}
+        onRemove={(genre) => genreEditor.editingItem && savedUrls.removeItemGenre(genreEditor.editingItem.url, genre)}
+        onClose={genreEditor.close}
       />
     </View>
   );

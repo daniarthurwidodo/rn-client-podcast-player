@@ -14,7 +14,7 @@ A mobile audio player for podcasts that live behind web links (currently YouTube
 | Design | Dark "Acoustic Ember" system (`DESIGN.md`); tokens in `lib/theme.ts`; Plus Jakarta Sans + Manrope fonts |
 | Native modules | `newpipe-resolver` (URL → audio stream + title + thumbnail), `audio-effects` (compressor, vocal-boost EQ) |
 | Backend | None — all resolving happens on-device. |
-| Tests | 62 unit tests (`npm test`): `lib/*.test.ts`, `stores/*.test.ts`. E2E (`e2e/`, Cucumber + Appium): scaffolded, no feature files yet. No component/UI tests. |
+| Tests | 163 unit tests (`npm test`): `lib/*.test.ts`, `stores/*.test.ts`. E2E (`e2e/`, Cucumber + Appium): scaffolded, no feature files yet. No component/UI tests. |
 
 ## 2. Problem & Goals
 
@@ -26,7 +26,7 @@ A mobile audio player for podcasts that live behind web links (currently YouTube
 3. Keep a personal library that survives restarts, with listening progress.
 4. Make speech clearer on phone speakers/earbuds (effects, speed).
 
-**Non-goals (today):** accounts/sync, downloads/offline, playlists/queue, search/discovery, RSS podcasts, iOS, social features.
+**Non-goals (today):** accounts/sync, downloads/offline, saved/custom playlists and manual queue editing (genre playlists exist, see F25–F31), search/discovery, RSS podcasts, iOS, social features.
 
 ## 3. Target User
 
@@ -49,16 +49,23 @@ Someone who listens to talks, interviews and podcasts published as YouTube video
 | F11 | Background playback + lock-screen controls with title/artwork | Done |
 | F12 | Ask `POST_NOTIFICATIONS` (Android 13+) once per session, after first playback starts; denial never blocks audio | Done |
 | F13 | Play even when the phone is on vibrate/silent | Done (`playsInSilentMode`) |
-| F14 | Compressor and Vocal-boost switches; kept across tracks within a session | Done — not persisted across launches |
-| F15 | Mini player above the tab bar on every tab; hidden on the Player screen | Done |
+| F14 | Compressor and Vocal-boost switches | Removed from the UI (native `audio-effects` module and store action remain) |
+| F15 | Mini player at the bottom of every tab; hidden on the Player screen | Done |
 | F16 | **Progress:** save position + duration per URL (`playback-progress`) about every 5 s of playback, and on pause, track switch and stop | Done |
 | F17 | **Resume:** re-opening an in-progress track seeks to the saved position; completed or barely-started tracks start at 0:00 | Done |
 | F18 | **Progress states:** *Unplayed* (< 5 s played), *In progress*, *Completed* (within 10 s of the end) | Done (`lib/playbackProgress.ts`) |
 | F19 | **Filter chips** All / Unplayed / In Progress / Completed with counts | Done |
 | F20 | **Paste bar:** read the clipboard and open the Add modal prefilled; if no valid link, open empty with a message | Done — user still confirms with Add |
-| F21 | **Bottom tabs** Home / Explore / Library / Downloads | Done — last three are "Coming soon" placeholders |
+| F21 | **Bottom tabs** Home / Explore / Library / Downloads | Removed — the tab bar is hidden; the three placeholder screens still exist but are unreachable |
 | F22 | **Draggable scrubber** (tap or drag to seek, live time while dragging) | Done |
 | F23 | **Skip** back 15 s / forward 30 s, clamped to the track | Done (not on lock screen) |
+| F25 | **Genres:** free-text tags on a saved item, any number, case-insensitive, stored on the item (`genres`); long-press a card or tap its badges / "+ Genre" to edit | Done |
+| F26 | **Genre filter:** chip row on Home (first 3, then Show more / Show less), combined with the progress filter | Done |
+| F27 | **Genre playlist:** Play / Shuffle on Home plays the genres currently shown as a queue; auto-advances when a track ends; picking another track by hand ends it | Done |
+| F28 | **Player queue controls:** previous / next, shuffle toggle (mid-playback), repeat off → all → one (one uses the player's native loop) | Done |
+| F29 | **Playlist panel** on the Player: queued tracks, current highlighted, tap to jump, scrolls | Done |
+| F30 | **Resolved-audio cache:** stream URLs cached 5 h (measured URL life 6 h); Retry bypasses it; the next queue track is resolved ahead of time | Done |
+| F31 | **Retry and notices:** Retry button on a failed track; non-fatal errors clear after 5 s | Done |
 | F24 | **Playback speed** chip cycling 1× → 1.25× → 1.5× → 2× → 0.75×; reapplied to the next track | Done — not persisted across launches |
 
 ### Non-functional
@@ -72,17 +79,17 @@ Someone who listens to talks, interviews and podcasts published as YouTube video
 
 ```
 Root Stack (app/_layout.tsx)
-├── (tabs)  Tabs with custom AppTabBar (app/(tabs)/_layout.tsx)
+├── (tabs)  Tabs with the tab bar replaced by the mini player (app/(tabs)/_layout.tsx)
 │   ├── index      Home — "Podcasts"
 │   ├── explore    Coming soon
 │   ├── library    Coming soon
 │   └── downloads  Coming soon
-│   └── AppTabBar renders MiniPlayer directly above the tab buttons
+│   └── the tab bar slot renders only MiniPlayer
 └── player  Player (pushed on top of the tabs, no tab bar)
 ```
 
 State: `usePlayerStore` (Zustand; phases `idle → resolving → ready | error`; also holds `progressByUrl`, `enabledEffects`, `playbackRate`), `useSavedUrls` (library), `useAddUrlModal` (modal form + clipboard).
-Storage keys: `saved-urls`, `playback-progress`.
+Storage keys: `saved-urls` (items incl. `genres`), `playback-progress`, `resolved-audio`.
 
 ## 6. Screen Documentation
 
@@ -98,8 +105,8 @@ Storage keys: `saved-urls`, `playback-progress`.
 | Load/save error banner | red text | `Could not load your saved URLs` / `Could not save your URL`; clears after 5 s, or when the next save succeeds |
 | List | `FlatList` of `SavedUrlItem` | See card below |
 | Empty states | text | Empty library: "Tap Paste URL to add a link"; empty filter: "Nothing here yet" |
-| Sound Studio Engine | `EffectsPanel` (list footer) | Vocal boost + Compressor switches, "Active DSP" indicator when either is on |
-| FAB | `FloatingAddButton` "Paste URL" pill | Opens the empty Add modal |
+| Genre chips | `GenreChips` | Genres with counts, first 3 then Show more; selecting one shows Play / Shuffle (`GenrePlayActions`) for the list shown |
+| Genre sheet | `GenreSheet` | Opened by long-press or the card's genre badges / "+ Genre"; add by typing, remove by tapping, suggestions from existing genres |
 
 **Card (`SavedUrlItem`):** 120×96 thumbnail (placeholder if none) with a duration badge once known and a check overlay when completed; indigo host badge (e.g. `youtube.com`); title (3 lines); status line — *Now playing* (amber, plus amber border) / *Unplayed* (green) / *Xm played • N%* (amber) / *Completed* (muted, card dimmed); 4 px progress bar under in-progress and completed cards; ✕ delete (immediate).
 
@@ -121,7 +128,7 @@ Storage keys: `saved-urls`, `playback-progress`.
 
 ### 6.3 Mini Player (`components/MiniPlayer.tsx`)
 
-Floating pill inside `AppTabBar` (so only on tab screens): 40 px thumbnail, title, subtitle ("Fetching audio info…" / error / "Buffering…" / "m:ss / m:ss"), amber play/pause when ready, 2 px progress line on the bottom rim. Tapping opens the Player.
+Floating pill at the bottom of the tab screens: 40 px thumbnail, title, subtitle ("Fetching audio info…" / error / "Buffering…" / "m:ss / m:ss"), amber play/pause when ready, 2 px progress line on the bottom rim. Tapping opens the Player.
 
 ### 6.4 Placeholder tabs
 Explore, Library and Downloads show their title and "Coming soon" (`ComingSoonScreen`).

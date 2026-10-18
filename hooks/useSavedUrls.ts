@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { addGenre, removeGenre } from '../lib/genres';
 import { createNoticeTimer } from '../lib/noticeTimer';
 import { resolveAudio } from '../lib/resolveAudio';
 import { loadSavedUrls, saveSavedUrls } from '../lib/savedUrlsStorage';
@@ -72,7 +73,7 @@ export function useSavedUrls() {
     if (latestSavedUrls.current.some((saved) => saved.url === url)) return;
 
     const audio = await resolveAudio(url);
-    const added = { url, title: audio.title, thumbnailUrl: audio.thumbnailUrl };
+    const added = { url, title: audio.title, thumbnailUrl: audio.thumbnailUrl, genres: [] };
     await commit([added, ...latestSavedUrls.current]);
   };
 
@@ -80,5 +81,18 @@ export function useSavedUrls() {
     await commit(latestSavedUrls.current.filter((saved) => saved.url !== url));
   };
 
-  return { savedUrls, errorMessage, addUrl, removeUrl };
+  const updateGenres = async (url: string, change: (genres: string[]) => string[]) => {
+    const target = latestSavedUrls.current.find((saved) => saved.url === url);
+    if (!target) return;
+
+    const genres = change(target.genres);
+    if (genres === target.genres) return;
+    await commit(latestSavedUrls.current.map((saved) => (saved.url === url ? { ...saved, genres } : saved)));
+  };
+
+  const addItemGenre = (url: string, genre: string) => updateGenres(url, (genres) => addGenre(genres, genre));
+
+  const removeItemGenre = (url: string, genre: string) => updateGenres(url, (genres) => removeGenre(genres, genre));
+
+  return { savedUrls, errorMessage, addUrl, removeUrl, addItemGenre, removeItemGenre };
 }

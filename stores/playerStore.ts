@@ -17,6 +17,9 @@ const expoAudioPlayerPort: AudioPlayerPort = {
   pause: () => audioPlayer.pause(),
   seekTo: (seconds) => audioPlayer.seekTo(seconds),
   setPlaybackRate: (rate) => audioPlayer.setPlaybackRate(rate),
+  setLoop: (isLooping) => {
+    audioPlayer.loop = isLooping;
+  },
   setEffectEnabled: (effect, enabled) => setEffectEnabled(audioPlayer.id, effect, enabled),
   // doNotMix is required for the lock-screen controls to attach to this player.
   // playsInSilentMode must be explicit: expo-audio refuses play() on Android while the ringer is on vibrate/mute.
@@ -39,6 +42,7 @@ const playerStore = createPlayerStore({
   resolveAudio,
   player: expoAudioPlayerPort,
   progressStorage: { load: loadProgress, save: saveProgress },
+  random: Math.random,
 });
 
 export function usePlayerStore<Selected>(selector: (state: PlayerState) => Selected): Selected {

@@ -2,6 +2,8 @@ import { createStore } from 'zustand/vanilla';
 import { createNoticeTimer } from '../lib/noticeTimer.ts';
 import { getResumePosition, MIN_PLAYED_SECONDS } from '../lib/playbackProgress.ts';
 import type { ProgressByUrl } from '../lib/playbackProgress.ts';
+import { buildQueue, cycleRepeatMode, getNextStep, getPreviousStep, isLoopingTrack, reorderQueue } from '../lib/queue.ts';
+import type { QueueState, RepeatMode } from '../lib/queue.ts';
 import type { SavedUrl } from '../lib/savedUrl';
 
 const RESOLVE_ERROR_MESSAGE = 'Could not load audio for this URL';
@@ -22,6 +24,7 @@ export type PlaybackStatus = {
   isLoaded: boolean;
   isBuffering: boolean;
   playing: boolean;
+  didJustFinish: boolean;
   currentTime: number;
   duration: number;
   error: string | null;
@@ -38,6 +41,7 @@ export type AudioPlayerPort = {
   pause: () => void;
   seekTo: (seconds: number) => Promise<void>;
   setPlaybackRate: (rate: number) => void;
+  setLoop: (isLooping: boolean) => void;
   setEffectEnabled: (effect: AudioEffect, enabled: boolean) => Promise<void>;
   enableBackgroundPlayback: () => Promise<void>;
   showLockScreenControls: (metadata: LockScreenMetadata) => void;
@@ -55,6 +59,7 @@ export type PlayerStoreDependencies = {
   resolveAudio: (videoUrl: string, options?: { refresh?: boolean }) => Promise<{ url: string }>;
   player: AudioPlayerPort;
   progressStorage: ProgressStoragePort;
+  random: () => number;
 };
 
 type PlayerData = {
@@ -70,10 +75,20 @@ type PlayerData = {
   enabledEffects: Record<AudioEffect, boolean>;
   playbackRate: number;
   progressByUrl: ProgressByUrl;
+  queue: QueueState | null;
+  queueSource: SavedUrl[];
+  repeatMode: RepeatMode;
+  isShuffled: boolean;
 };
 
 type PlayerActions = {
   loadTrack: (track: SavedUrl) => Promise<void>;
+  playQueue: (tracks: SavedUrl[], options: { shuffle: boolean }) => Promise<void>;
+  playNext: () => Promise<void>;
+  playPrevious: () => Promise<void>;
+  playQueueTrack: (index: number) => Promise<void>;
+  cycleRepeat: () => void;
+  toggleShuffle: () => void;
   togglePlayback: () => void;
   seekToFraction: (fraction: number) => Promise<void>;
   skipBySeconds: (deltaSeconds: number) => Promise<void>;
@@ -86,8 +101,9 @@ type PlayerActions = {
 export type PlayerState = PlayerData & PlayerActions;
 
 // errorMessage is the fatal error that puts the track in the error phase; notice is a non-fatal one that expires.
-// Effects, speed and saved progress belong to the player, so they survive track changes and stop().
-const IDLE_DATA: Omit<PlayerData, 'notice' | 'enabledEffects' | 'playbackRate' | 'progressByUrl'> = {
+// Effects, speed, saved progress and the repeat mode belong to the player, so they survive track changes and stop().
+// The queue is left out on purpose: loading the next queue track must not reset it.
+const IDLE_DATA: Omit<PlayerData, 'notice' | 'enabledEffects' | 'playbackRate' | 'progressByUrl' | 'queue' | 'queueSource' | 'repeatMode' | 'isShuffled'> = {
   track: null,
   phase: 'idle',
   isLoaded: false,
@@ -98,12 +114,13 @@ const IDLE_DATA: Omit<PlayerData, 'notice' | 'enabledEffects' | 'playbackRate' |
   errorMessage: null,
 };
 
-export function createPlayerStore({ resolveAudio, player, progressStorage }: PlayerStoreDependencies) {
+export function createPlayerStore({ resolveAudio, player, progressStorage, random }: PlayerStoreDependencies) {
   // Only lock-screen controls need it, so it is asked for once per app session, after playback has started.
   let hasRequestedNotificationPermission = false;
   // While set, position updates are not saved: until the resume seek lands they report 0 and would overwrite the saved position.
   let resumeSeconds: number | null = null;
   let isResumeSeekIssued = false;
+  let isLooping = false;
   const noticeTimer = createNoticeTimer(() => clearNotice());
 
   const store = createStore<PlayerState>()((set, get) => ({
@@ -112,37 +129,52 @@ export function createPlayerStore({ resolveAudio, player, progressStorage }: Pla
     enabledEffects: { compressor: false, vocalBoost: false },
     playbackRate: DEFAULT_PLAYBACK_RATE,
     progressByUrl: {},
+    queue: null,
+    queueSource: [],
+    repeatMode: 'off',
+    isShuffled: false,
 
-    loadTrack: async (track) => {
-      const { track: currentTrack, phase } = get();
-      const isSameTrack = currentTrack?.url === track.url;
-      if (isSameTrack && phase !== 'error') return;
+    loadTrack: (track) => {
+      // A manual pick of another track ends the playlist; reopening or retrying the current one keeps it.
+      if (get().track?.url !== track.url) set({ queue: null });
+      return startTrack(track);
+    },
 
-      flushProgress();
-      clearNotice();
-      player.pause();
-      const resumePosition = getResumePosition(get().progressByUrl[track.url]);
-      resumeSeconds = resumePosition > 0 ? resumePosition : null;
-      isResumeSeekIssued = false;
-      set({ ...IDLE_DATA, track, phase: 'resolving' });
-      try {
-        // Retrying a failed track must not reuse the cached stream URL that probably caused the failure.
-        const audio = await resolveAudio(track.url, { refresh: isSameTrack });
-        if (get().track?.url !== track.url) return;
-        await player.enableBackgroundPlayback();
-        player.replace(audio.url);
-        if (get().playbackRate !== DEFAULT_PLAYBACK_RATE) player.setPlaybackRate(get().playbackRate);
-        player.play();
-        player.showLockScreenControls({ title: track.title, artworkUrl: track.thumbnailUrl });
-        set({ phase: 'ready' });
-      } catch {
-        if (get().track?.url === track.url) set({ phase: 'error', errorMessage: RESOLVE_ERROR_MESSAGE });
-        return;
-      }
+    playQueue: async (tracks, { shuffle }) => {
+      if (tracks.length === 0) return;
+      const orderedTracks = buildQueue(tracks, shuffle, random);
+      set({ queue: { tracks: orderedTracks, index: 0 }, queueSource: tracks, isShuffled: shuffle });
+      await startTrack(orderedTracks[0]);
+    },
 
-      if (hasRequestedNotificationPermission) return;
-      hasRequestedNotificationPermission = true;
-      await player.requestNotificationPermission();
+    playNext: async () => {
+      await moveToNext();
+    },
+
+    playQueueTrack: async (index) => {
+      const { queue } = get();
+      if (!queue || index === queue.index || !queue.tracks[index]) return;
+      await moveToStep({ tracks: queue.tracks, index });
+    },
+
+    cycleRepeat: () => {
+      set({ repeatMode: cycleRepeatMode(get().repeatMode) });
+      syncLoop();
+    },
+
+    toggleShuffle: () => {
+      const { queue, queueSource, isShuffled } = get();
+      if (!queue) return;
+      const nextQueue = reorderQueue(queueSource, queue.tracks[queue.index], !isShuffled, random);
+      set({ queue: nextQueue, isShuffled: !isShuffled });
+    },
+
+    playPrevious: async () => {
+      const { queue, repeatMode } = get();
+      if (!queue) return;
+      const step = getPreviousStep({ queue, repeatMode });
+      if (step) await moveToStep(step);
+      else await seekWithinTrack(0);
     },
 
     togglePlayback: () => {
@@ -171,7 +203,8 @@ export function createPlayerStore({ resolveAudio, player, progressStorage }: Pla
       resumeSeconds = null;
       player.pause();
       player.hideLockScreenControls();
-      set(IDLE_DATA);
+      set({ ...IDLE_DATA, queue: null });
+      syncLoop();
     },
 
     clearNotice: () => clearNotice(),
@@ -188,6 +221,78 @@ export function createPlayerStore({ resolveAudio, player, progressStorage }: Pla
       }
     },
   }));
+
+  const startTrack = async (track: SavedUrl) => {
+    const { track: currentTrack, phase } = store.getState();
+    const isSameTrack = currentTrack?.url === track.url;
+    if (isSameTrack && phase !== 'error') return;
+
+    flushProgress();
+    clearNotice();
+    player.pause();
+    const resumePosition = getResumePosition(store.getState().progressByUrl[track.url]);
+    resumeSeconds = resumePosition > 0 ? resumePosition : null;
+    isResumeSeekIssued = false;
+    store.setState({ ...IDLE_DATA, track, phase: 'resolving' });
+    try {
+      // Retrying a failed track must not reuse the cached stream URL that probably caused the failure.
+      const audio = await resolveAudio(track.url, { refresh: isSameTrack });
+      if (store.getState().track?.url !== track.url) return;
+      await player.enableBackgroundPlayback();
+      player.replace(audio.url);
+      syncLoop();
+      if (store.getState().playbackRate !== DEFAULT_PLAYBACK_RATE) player.setPlaybackRate(store.getState().playbackRate);
+      player.play();
+      player.showLockScreenControls({ title: track.title, artworkUrl: track.thumbnailUrl });
+      store.setState({ phase: 'ready' });
+      prefetchNextTrack();
+    } catch {
+      if (store.getState().track?.url === track.url) store.setState({ phase: 'error', errorMessage: RESOLVE_ERROR_MESSAGE });
+      return;
+    }
+
+    if (hasRequestedNotificationPermission) return;
+    hasRequestedNotificationPermission = true;
+    await player.requestNotificationPermission();
+  };
+
+  // The player loops by itself, so repeating one track never reloads it; only changes are sent to the player.
+  const syncLoop = () => {
+    const { queue, repeatMode } = store.getState();
+    const shouldLoop = isLoopingTrack(queue, repeatMode);
+    if (shouldLoop === isLooping) return;
+    isLooping = shouldLoop;
+    player.setLoop(shouldLoop);
+  };
+
+  // Warms the resolve cache so the next track starts without the fetch delay. Best effort: nothing depends on the
+  // result, so a failure is ignored and the track is simply resolved when its turn comes.
+  const prefetchNextTrack = () => {
+    const { queue } = store.getState();
+    const nextTrack = queue?.tracks[queue.index + 1];
+    if (nextTrack) resolveAudio(nextTrack.url).catch(() => undefined);
+  };
+
+  const moveToStep = async (step: QueueState) => {
+    store.setState({ queue: step });
+    await startTrack(step.tracks[step.index]);
+  };
+
+  // False when the queue has no further track.
+  const moveToNext = async (): Promise<boolean> => {
+    const { queue, repeatMode, isShuffled } = store.getState();
+    const step = queue && getNextStep({ queue, repeatMode, isShuffled, random });
+    if (!step) return false;
+
+    await moveToStep(step);
+    return true;
+  };
+
+  const advanceAfterFinish = async () => {
+    if (!store.getState().queue) return;
+    const hasNext = await moveToNext();
+    if (!hasNext) store.setState({ queue: null });
+  };
 
   const clearNotice = () => {
     noticeTimer.cancel();
@@ -284,6 +389,7 @@ export function createPlayerStore({ resolveAudio, player, progressStorage }: Pla
 
     if (resumeSeconds !== null) resumeFromSavedPosition(status, resumeSeconds);
     else saveProgressStep(status);
+    if (status.didJustFinish) advanceAfterFinish();
   });
 
   hydrateProgress();

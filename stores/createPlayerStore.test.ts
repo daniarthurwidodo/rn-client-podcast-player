@@ -5,9 +5,9 @@ import { createPlayerStore, PLAYBACK_RATES } from './createPlayerStore.ts';
 import type { PlaybackStatus } from './createPlayerStore.ts';
 import type { ProgressByUrl } from '../lib/playbackProgress.ts';
 
-const TRACK_A = { url: 'https://youtu.be/aaaaaaaaaaa', title: 'A', thumbnailUrl: null };
-const TRACK_B = { url: 'https://youtu.be/bbbbbbbbbbb', title: 'B', thumbnailUrl: null };
-const READY_STATUS: PlaybackStatus = { isLoaded: true, isBuffering: false, playing: true, currentTime: 10, duration: 100, error: null };
+const TRACK_A = { url: 'https://youtu.be/aaaaaaaaaaa', title: 'A', thumbnailUrl: null, genres: [] };
+const TRACK_B = { url: 'https://youtu.be/bbbbbbbbbbb', title: 'B', thumbnailUrl: null, genres: [] };
+const READY_STATUS: PlaybackStatus = { isLoaded: true, isBuffering: false, playing: true, didJustFinish: false, currentTime: 10, duration: 100, error: null };
 
 function createFakes(
   resolveAudio: (url: string, options?: { refresh?: boolean }) => Promise<{ url: string }> = async (url) => ({ url: `audio:${url}` }),
@@ -15,6 +15,7 @@ function createFakes(
   shouldFailBackground = false,
   initialProgress: ProgressByUrl = {},
   shouldFailProgressSave = false,
+  random: () => number = () => 0,
 ) {
   let isSeekFailing = false;
   const calls: string[] = [];
@@ -29,6 +30,7 @@ function createFakes(
       calls.push(`seek ${seconds}`);
     },
     setPlaybackRate: (rate: number) => calls.push(`rate ${rate}`),
+    setLoop: (isLooping: boolean) => calls.push(`loop ${isLooping}`),
     setEffectEnabled: async (effect: string, enabled: boolean) => {
       if (shouldFailEffects) throw new Error('unsupported');
       calls.push(`${effect} ${enabled}`);
@@ -55,7 +57,7 @@ function createFakes(
       savedProgress.push(progressByUrl);
     },
   };
-  const store = createPlayerStore({ resolveAudio, player, progressStorage });
+  const store = createPlayerStore({ resolveAudio, player, progressStorage, random });
   return {
     store,
     calls,
@@ -615,4 +617,343 @@ test('loading a different track after a failure still uses the cache', async () 
   await store.getState().loadTrack(TRACK_B);
 
   assert.deepEqual(refreshFlags, [false, false]);
+});
+
+const TRACK_C = { url: 'https://youtu.be/ccccccccccc', title: 'C', thumbnailUrl: null, genres: [] };
+const finishedStatus = (): PlaybackStatus => ({ ...READY_STATUS, playing: false, currentTime: 99, duration: 100, didJustFinish: true });
+const replacesIn = (calls: string[]) => calls.filter((call) => call.startsWith('replace'));
+const letLoadSettle = () => new Promise((resolve) => setImmediate(resolve));
+
+async function startQueue(tracks = [TRACK_A, TRACK_B], shuffle = false, random: () => number = () => 0) {
+  const fakes = createFakes(undefined, false, false, {}, false, random);
+  await fakes.store.getState().playQueue(tracks, { shuffle });
+  fakes.emitStatus(READY_STATUS);
+  return fakes;
+}
+
+test('playQueue plays the first track in library order and keeps the rest queued', async () => {
+  const { store, calls } = await startQueue([TRACK_A, TRACK_B, TRACK_C]);
+
+  assert.equal(store.getState().track?.title, 'A');
+  assert.deepEqual(store.getState().queue?.tracks.map((track) => track.title), ['A', 'B', 'C']);
+  assert.deepEqual(replacesIn(calls), [`replace audio:${TRACK_A.url}`]);
+});
+
+test('playQueue with shuffle uses the random order', async () => {
+  const { store } = await startQueue([TRACK_A, TRACK_B, TRACK_C], true);
+
+  assert.deepEqual(store.getState().queue?.tracks.map((track) => track.title), ['B', 'C', 'A']);
+  assert.equal(store.getState().track?.title, 'B');
+  assert.equal(store.getState().isShuffled, true);
+});
+
+test('playQueue with no tracks does nothing', async () => {
+  const { store } = createFakes();
+
+  await store.getState().playQueue([], { shuffle: false });
+
+  assert.equal(store.getState().queue, null);
+  assert.equal(store.getState().track, null);
+});
+
+test('when a track finishes the next queued track starts', async () => {
+  const { store, calls, emitStatus } = await startQueue();
+
+  emitStatus(finishedStatus());
+  await letLoadSettle();
+
+  assert.equal(store.getState().track?.title, 'B');
+  assert.equal(store.getState().queue?.index, 1);
+  assert.deepEqual(replacesIn(calls), [`replace audio:${TRACK_A.url}`, `replace audio:${TRACK_B.url}`]);
+});
+
+test('the finished track is saved as completed before the next one loads', async () => {
+  const { store, emitStatus } = await startQueue();
+
+  emitStatus(finishedStatus());
+  await letLoadSettle();
+
+  assert.deepEqual(store.getState().progressByUrl[TRACK_A.url], { positionSeconds: 99, durationSeconds: 100 });
+});
+
+test('the queue ends after the last track when repeat is off', async () => {
+  const { store, calls, emitStatus } = await startQueue([TRACK_A]);
+
+  emitStatus(finishedStatus());
+  await letLoadSettle();
+
+  assert.equal(store.getState().queue, null);
+  assert.equal(replacesIn(calls).length, 1);
+});
+
+test('a finished track without a queue does not load anything else', async () => {
+  const { store, calls, emitStatus } = createFakes();
+  await store.getState().loadTrack(TRACK_A);
+  emitStatus(READY_STATUS);
+
+  emitStatus(finishedStatus());
+  await letLoadSettle();
+
+  assert.equal(replacesIn(calls).length, 1);
+});
+
+test('picking another track by hand ends the queue, reopening the current one keeps it', async () => {
+  const { store } = await startQueue();
+
+  await store.getState().loadTrack(TRACK_A);
+  assert.ok(store.getState().queue);
+
+  await store.getState().loadTrack(TRACK_C);
+  assert.equal(store.getState().queue, null);
+});
+
+test('retrying a failed queue track keeps the queue', async () => {
+  const { resolveAudio } = createRecordingResolver(1);
+  const { store } = createFakes(resolveAudio);
+  await store.getState().playQueue([TRACK_A, TRACK_B], { shuffle: false });
+  assert.equal(store.getState().phase, 'error');
+
+  await store.getState().loadTrack(TRACK_A);
+
+  assert.equal(store.getState().phase, 'ready');
+  assert.equal(store.getState().queue?.tracks.length, 2);
+});
+
+test('stop clears the queue', async () => {
+  const { store } = await startQueue();
+
+  store.getState().stop();
+
+  assert.equal(store.getState().queue, null);
+});
+
+test('playNext moves to the next queued track', async () => {
+  const { store } = await startQueue();
+
+  await store.getState().playNext();
+
+  assert.equal(store.getState().track?.title, 'B');
+});
+
+test('playNext on the last track does nothing and keeps the queue', async () => {
+  const { store, calls } = await startQueue([TRACK_A]);
+
+  await store.getState().playNext();
+
+  assert.ok(store.getState().queue);
+  assert.equal(replacesIn(calls).length, 1);
+});
+
+test('playNext without a queue does nothing', async () => {
+  const { store } = createFakes();
+
+  await store.getState().playNext();
+
+  assert.equal(store.getState().track, null);
+});
+
+test('playPrevious goes back to the previous queued track', async () => {
+  const { store, emitStatus } = await startQueue();
+  emitStatus(finishedStatus());
+  await letLoadSettle();
+
+  await store.getState().playPrevious();
+
+  assert.equal(store.getState().track?.title, 'A');
+});
+
+test('playPrevious on the first track restarts it', async () => {
+  const { store, calls } = await startQueue();
+
+  await store.getState().playPrevious();
+
+  assert.ok(calls.includes('seek 0'));
+  assert.equal(store.getState().track?.title, 'A');
+});
+
+test('playQueueTrack jumps to a queued track and keeps the queue order', async () => {
+  const { store } = await startQueue([TRACK_A, TRACK_B, TRACK_C]);
+
+  await store.getState().playQueueTrack(2);
+
+  assert.equal(store.getState().track?.title, 'C');
+  assert.equal(store.getState().queue?.index, 2);
+  assert.deepEqual(store.getState().queue?.tracks.map((track) => track.title), ['A', 'B', 'C']);
+});
+
+test('playQueueTrack ignores the current track, positions outside the queue and a missing queue', async () => {
+  const { store, calls } = await startQueue([TRACK_A, TRACK_B]);
+
+  await store.getState().playQueueTrack(0);
+  await store.getState().playQueueTrack(5);
+  await store.getState().playQueueTrack(-1);
+
+  assert.equal(replacesIn(calls).length, 1);
+
+  const withoutQueue = createFakes();
+  await withoutQueue.store.getState().playQueueTrack(0);
+  assert.equal(withoutQueue.store.getState().track, null);
+});
+
+const loopCallsIn = (calls: string[]) => calls.filter((call) => call.startsWith('loop'));
+
+test('cycleRepeat goes off, all, one and back to off', async () => {
+  const { store } = await startQueue();
+
+  const modes = [store.getState().repeatMode];
+  for (let press = 0; press < 3; press++) {
+    store.getState().cycleRepeat();
+    modes.push(store.getState().repeatMode);
+  }
+
+  assert.deepEqual(modes, ['off', 'all', 'one', 'off']);
+});
+
+test('repeat one turns the player loop on, and leaving it turns it off', async () => {
+  const { store, calls } = await startQueue();
+
+  store.getState().cycleRepeat();
+  assert.deepEqual(loopCallsIn(calls), []);
+
+  store.getState().cycleRepeat();
+  assert.deepEqual(loopCallsIn(calls), ['loop true']);
+
+  store.getState().cycleRepeat();
+  assert.deepEqual(loopCallsIn(calls), ['loop true', 'loop false']);
+});
+
+test('repeat one keeps looping when the next queue track is loaded by hand', async () => {
+  const { store, calls } = await startQueue([TRACK_A, TRACK_B, TRACK_C]);
+  store.getState().cycleRepeat();
+  store.getState().cycleRepeat();
+
+  await store.getState().playNext();
+
+  assert.equal(store.getState().track?.title, 'B');
+  assert.deepEqual(loopCallsIn(calls), ['loop true']);
+});
+
+test('stop turns the loop off', async () => {
+  const { store, calls } = await startQueue();
+  store.getState().cycleRepeat();
+  store.getState().cycleRepeat();
+
+  store.getState().stop();
+
+  assert.deepEqual(loopCallsIn(calls), ['loop true', 'loop false']);
+});
+
+test('picking another track by hand ends the queue and its loop', async () => {
+  const { store, calls } = await startQueue();
+  store.getState().cycleRepeat();
+  store.getState().cycleRepeat();
+
+  await store.getState().loadTrack(TRACK_C);
+
+  assert.deepEqual(loopCallsIn(calls), ['loop true', 'loop false']);
+});
+
+test('a one-track queue repeating all loops that track', async () => {
+  const { store, calls } = await startQueue([TRACK_A]);
+
+  store.getState().cycleRepeat();
+
+  assert.deepEqual(loopCallsIn(calls), ['loop true']);
+});
+
+test('repeat all wraps from the last track back to the first', async () => {
+  const { store, emitStatus } = await startQueue();
+  store.getState().cycleRepeat();
+  emitStatus(finishedStatus());
+  await letLoadSettle();
+  emitStatus(READY_STATUS);
+
+  emitStatus(finishedStatus());
+  await letLoadSettle();
+
+  assert.equal(store.getState().track?.title, 'A');
+  assert.equal(store.getState().queue?.index, 0);
+});
+
+test('toggleShuffle keeps the current track playing and puts it first', async () => {
+  const { store, calls } = await startQueue([TRACK_A, TRACK_B, TRACK_C]);
+  await store.getState().playQueueTrack(1);
+  const replacesBefore = replacesIn(calls).length;
+
+  store.getState().toggleShuffle();
+
+  assert.equal(store.getState().isShuffled, true);
+  assert.deepEqual(store.getState().queue?.tracks.map((track) => track.title), ['B', 'C', 'A']);
+  assert.equal(store.getState().queue?.index, 0);
+  assert.equal(store.getState().track?.title, 'B');
+  assert.equal(replacesIn(calls).length, replacesBefore);
+});
+
+test('toggleShuffle off restores library order around the current track', async () => {
+  const { store } = await startQueue([TRACK_A, TRACK_B, TRACK_C], true);
+
+  store.getState().toggleShuffle();
+
+  assert.equal(store.getState().isShuffled, false);
+  assert.deepEqual(store.getState().queue?.tracks.map((track) => track.title), ['A', 'B', 'C']);
+  assert.equal(store.getState().queue?.index, 1);
+});
+
+test('toggleShuffle without a queue does nothing', () => {
+  const { store } = createFakes();
+
+  store.getState().toggleShuffle();
+
+  assert.equal(store.getState().isShuffled, false);
+  assert.equal(store.getState().queue, null);
+});
+
+test('while a queue track plays, the next track is resolved ahead of time without bypassing the cache', async () => {
+  const { resolveAudio, refreshFlags } = createRecordingResolver(0);
+  const urlsResolved: string[] = [];
+  const recordingResolver = async (url: string, options?: { refresh?: boolean }) => {
+    urlsResolved.push(url);
+    return resolveAudio(url, options);
+  };
+  const { store } = createFakes(recordingResolver);
+
+  await store.getState().playQueue([TRACK_A, TRACK_B, TRACK_C], { shuffle: false });
+
+  assert.deepEqual(urlsResolved, [TRACK_A.url, TRACK_B.url]);
+  assert.deepEqual(refreshFlags, [false, false]);
+});
+
+test('nothing is resolved ahead on the last track or without a queue', async () => {
+  const urlsResolved: string[] = [];
+  const resolver = async (url: string) => {
+    urlsResolved.push(url);
+    return { url: `audio:${url}` };
+  };
+  const { store } = createFakes(resolver);
+
+  await store.getState().loadTrack(TRACK_A);
+  await store.getState().playQueue([TRACK_B], { shuffle: false });
+
+  assert.deepEqual(urlsResolved, [TRACK_A.url, TRACK_B.url]);
+});
+
+test('a failed resolve-ahead is ignored and the next track still plays when its turn comes', async () => {
+  let failNext = true;
+  const resolver = async (url: string) => {
+    if (url === TRACK_B.url && failNext) {
+      failNext = false;
+      throw new Error('offline');
+    }
+    return { url: `audio:${url}` };
+  };
+  const { store, emitStatus } = createFakes(resolver);
+  await store.getState().playQueue([TRACK_A, TRACK_B], { shuffle: false });
+  emitStatus(READY_STATUS);
+  assert.equal(store.getState().phase, 'ready');
+
+  emitStatus(finishedStatus());
+  await letLoadSettle();
+
+  assert.equal(store.getState().track?.title, 'B');
+  assert.equal(store.getState().phase, 'ready');
 });

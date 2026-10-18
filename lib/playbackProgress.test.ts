@@ -9,9 +9,9 @@ import {
   parseProgressByUrl,
 } from './playbackProgress.ts';
 
-const UNPLAYED_ITEM = { url: 'https://youtu.be/u', title: 'U', thumbnailUrl: null };
-const STARTED_ITEM = { url: 'https://youtu.be/s', title: 'S', thumbnailUrl: null };
-const FINISHED_ITEM = { url: 'https://youtu.be/f', title: 'F', thumbnailUrl: null };
+const UNPLAYED_ITEM = { url: 'https://youtu.be/u', title: 'U', thumbnailUrl: null, genres: [] };
+const STARTED_ITEM = { url: 'https://youtu.be/s', title: 'S', thumbnailUrl: null, genres: [] };
+const FINISHED_ITEM = { url: 'https://youtu.be/f', title: 'F', thumbnailUrl: null, genres: [] };
 const ITEMS = [UNPLAYED_ITEM, STARTED_ITEM, FINISHED_ITEM];
 const PROGRESS = {
   [STARTED_ITEM.url]: { positionSeconds: 600, durationSeconds: 1000 },

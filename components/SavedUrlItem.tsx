@@ -13,6 +13,8 @@ const NOW_PLAYING_LABEL = 'Now playing';
 const UNPLAYED_LABEL = 'Unplayed';
 const COMPLETED_LABEL = 'Completed';
 const PERCENT = 100;
+const VISIBLE_CARD_GENRES = 2;
+const ADD_GENRE_LABEL = '+ Genre';
 
 type Props = {
   item: SavedUrl;
@@ -20,6 +22,7 @@ type Props = {
   isCurrent: boolean;
   onPress: (item: SavedUrl) => void;
   onDelete: (url: string) => void;
+  onEditGenres: (item: SavedUrl) => void;
 };
 
 function getStatusLabel(state: ProgressState, progress: PlaybackProgress | undefined): string {
@@ -32,7 +35,24 @@ function getStatusLabel(state: ProgressState, progress: PlaybackProgress | undef
   return labels[state];
 }
 
-export function SavedUrlItem({ item, progress, isCurrent, onPress, onDelete }: Props) {
+function GenreRow({ item, onEdit }: { item: SavedUrl; onEdit: (item: SavedUrl) => void }) {
+  const shownGenres = item.genres.slice(0, VISIBLE_CARD_GENRES);
+  const hiddenCount = item.genres.length - shownGenres.length;
+
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`Edit genres of ${item.title}`} style={styles.genreRow} onPress={() => onEdit(item)}>
+      {item.genres.length === 0 ? <Text style={styles.addGenre}>{ADD_GENRE_LABEL}</Text> : null}
+      {shownGenres.map((genre) => (
+        <View key={genre} style={styles.genreBadge}>
+          <Text style={styles.genreLabel} numberOfLines={1}>{genre}</Text>
+        </View>
+      ))}
+      {hiddenCount > 0 ? <Text style={styles.moreGenres}>{`+${hiddenCount}`}</Text> : null}
+    </Pressable>
+  );
+}
+
+export function SavedUrlItem({ item, progress, isCurrent, onPress, onDelete, onEditGenres }: Props) {
   const state = getProgressState(progress);
   const isCompleted = state === 'completed';
   const statusStyle = styles[`status_${isCurrent ? 'inProgress' : state}`];
@@ -41,9 +61,10 @@ export function SavedUrlItem({ item, progress, isCurrent, onPress, onDelete }: P
     <Pressable
       style={[styles.card, isCurrent ? styles.cardCurrent : null, isCompleted && !isCurrent ? styles.cardCompleted : null]}
       onPress={() => onPress(item)}
+      onLongPress={() => onEditGenres(item)}
     >
       <View style={styles.row}>
-        <View>
+        <View style={styles.thumbnailWrap}>
           {item.thumbnailUrl ? (
             <Image source={{ uri: item.thumbnailUrl }} style={styles.thumbnail} />
           ) : (
@@ -78,6 +99,7 @@ export function SavedUrlItem({ item, progress, isCurrent, onPress, onDelete }: P
           <Text style={[styles.status, statusStyle]}>
             {isCurrent ? NOW_PLAYING_LABEL : getStatusLabel(state, progress)}
           </Text>
+          <GenreRow item={item} onEdit={onEditGenres} />
         </View>
       </View>
       {state === 'unplayed' ? null : (
@@ -106,6 +128,7 @@ const styles = StyleSheet.create({
   cardCurrent: { borderColor: colors.primary },
   cardCompleted: { opacity: 0.75 },
   row: { flexDirection: 'row' },
+  thumbnailWrap: { alignSelf: 'flex-start' },
   thumbnail: { width: 120, height: 96, borderRadius: spacing.md },
   placeholder: { backgroundColor: colors.surfaceElevated },
   completedOverlay: {
@@ -140,6 +163,18 @@ const styles = StyleSheet.create({
   status_unplayed: { color: colors.tertiary },
   status_inProgress: { color: colors.primary },
   status_completed: { color: colors.textMuted },
+  genreRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.xs + 2, marginTop: spacing.sm },
+  genreBadge: {
+    maxWidth: 110,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.stroke,
+  },
+  genreLabel: { color: colors.textSupporting, fontFamily: fonts.labelSemiBold, fontSize: 11 },
+  addGenre: { color: colors.textMuted, fontFamily: fonts.labelSemiBold, fontSize: 12 },
+  moreGenres: { color: colors.textMuted, fontFamily: fonts.labelSemiBold, fontSize: 11 },
   barTrack: {
     height: 4,
     marginTop: spacing.sm + spacing.xs,
