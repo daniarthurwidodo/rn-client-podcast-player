@@ -62,7 +62,7 @@ Someone who listens to talks, interviews and podcasts published as YouTube video
 | F25 | **Genres:** free-text tags on a saved item, any number, case-insensitive, stored on the item (`genres`); long-press a card or tap its badges / "+ Genre" to edit | Done |
 | F26 | **Genre filter:** chip row on Home (first 3, then Show more / Show less), combined with the progress filter | Done |
 | F27 | **Genre playlist:** the player store can play a list as a queue and auto-advances when a track ends; picking another track by hand ends it | Store done; **no Home entry point** since the Play / Shuffle buttons were removed (the `playQueue` action is unused by the UI) |
-| F32 | **Search:** a field under the paste bar filters the Home list by title, genre or URL (case- and accent-insensitive, every word must match); applied after the genre and progress filters; chip counts ignore it | Done (`src/business/logic/search.ts`) |
+| F32 | **Search:** a field under the title filters the Home list by title, genre or URL (case- and accent-insensitive, every word must match); applied after the genre and progress filters; chip counts ignore it | Done (`src/business/logic/search.ts`) |
 | F28 | **Player queue controls:** previous / next, shuffle toggle (mid-playback), repeat off → all → one (one uses the player's native loop) | Done |
 | F29 | **Playlist panel** on the Player: queued tracks, current highlighted, tap to jump, scrolls | Done |
 | F30 | **Resolved-audio cache:** stream URLs cached 5 h (measured URL life 6 h); Retry bypasses it; the next queue track is resolved ahead of time | Done |
@@ -114,7 +114,7 @@ Design record: `documentation/tehnical-solution/three layer architecture.md`.
 | Element | Component | Behavior |
 |---|---|---|
 | Header | title "Podcasts" + "N saved" chip | N counts the whole library |
-| Paste bar | `PasteBar` | "Paste a YouTube or web audio link…" + **Paste**; tap anywhere reads the clipboard and opens the Add modal (prefilled if it holds an http(s) link) |
+| Paste button | `FloatingPasteButton` | Floating amber "Paste URL" pill, bottom-right above the mini player; reads the clipboard and opens the Add modal (prefilled if it holds an http(s) link) |
 | Filter chips | `FilterChips` (horizontal scroll) | All / Unplayed / In Progress / Completed, each with a count; hidden while the library is empty |
 | Load/save error banner | red text | `Could not load your saved URLs` / `Could not save your URL`; clears after 5 s, or when the next save succeeds |
 | List | `FlatList` of `SavedUrlItem` | See card below |

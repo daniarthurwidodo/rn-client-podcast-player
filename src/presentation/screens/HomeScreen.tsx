@@ -5,7 +5,7 @@ import { AddUrlModal } from '../components/AddUrlModal';
 import { FilterChips } from '../components/FilterChips';
 import { GenreChips } from '../components/GenreChips';
 import { GenreSheet } from '../components/GenreSheet';
-import { PasteBar } from '../components/PasteBar';
+import { FloatingPasteButton } from '../components/FloatingPasteButton';
 import { SearchBar } from '../components/SearchBar';
 import { SavedUrlItem } from '../components/SavedUrlItem';
 import { useHomeScreen } from '../../business/hooks/useHomeScreen';
@@ -46,7 +46,6 @@ export default function HomeScreen() {
           <Text style={styles.countLabel}>{`${home.savedUrls.length} saved`}</Text>
         </View>
       </View>
-      <PasteBar onPaste={addUrl.openFromClipboard} />
       {home.isLibraryEmpty ? null : <SearchBar query={view.query} onChangeQuery={view.setQuery} />}
       {home.isLibraryEmpty ? null : (
         <FilterChips counts={view.progressCounts} selected={view.filter} onSelect={view.setFilter} />
@@ -73,6 +72,7 @@ export default function HomeScreen() {
           />
         )}
       />
+      <FloatingPasteButton onPress={addUrl.openFromClipboard} />
       <AddUrlModal
         isVisible={addUrl.isVisible}
         isSubmitting={addUrl.isSubmitting}
