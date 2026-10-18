@@ -219,3 +219,25 @@ Scripts: `npm test` = `node --test "src/**/*.test.ts"`, `npm run lint` = `expo l
 Checks: typecheck clean, lint clean, 161 tests pass. Emulator, after restarting Metro with a cleared cache (Expo Router resolves its route root from the folder layout): Expo Router found `src/app` (3405 modules bundled), Home renders, a track opens in the Player with queue controls and the playlist panel, the mini player shows on Home, genre chips and Play/Shuffle work.
 
 Left for Phase 5: update `PRD.md` and `AGENTS.md` for the new layout. Phase 4 (optional split of `createPlayerStore.ts`) is next.
+
+## 14. Phase 4 status — done (split of `createPlayerStore.ts`)
+
+`createPlayerStore.ts` was one 398-line file whose factory function was about 290 lines. It is now a 53-line composition file plus one module per concern, all in `src/business/player/`:
+
+| Module | Responsibility |
+|---|---|
+| `playerState.ts` | State and action types, `IDLE_DATA`, `INITIAL_DATA`, `PLAYBACK_RATES`, `StoreAccess` |
+| `playerMessages.ts` | User-facing error strings |
+| `notices.ts` | Non-fatal notices with the 5 s auto-clear |
+| `progressTracker.ts` | Saving position, resume-on-open, hydrating saved progress |
+| `queueSideEffects.ts` | Native loop sync and resolving the next track ahead of time |
+| `trackLoader.ts` | Resolve, hand to the player, start; notification permission once |
+| `playbackControls.ts` | Play/pause, seek, skip, speed, effects, stop |
+| `queueController.ts` | Playlist: build, next/previous/jump, repeat, shuffle, `loadTrack` (which ends the queue) |
+| `createPlayerStore.ts` | Wires the above together and subscribes to the player |
+
+How it avoids circular dependencies: slices receive a `StoreAccess` (`getState`/`setState`), not the store, so they can be built before it exists; the dependency order is notices → progress and queue side effects → loader and controls → queue controller. No behaviour change was intended or made; the 161 existing tests were the safety net and passed unchanged (only an import path in one test and a re-export of `PLAYBACK_RATES` were needed).
+
+Sizes: the longest function inside a module is 19 lines. The three factory wrappers (`createProgressTracker` 60, `createQueueController` 54, `createPlaybackControls` 50 lines of body) still exceed the 40-line guideline because they are containers of small functions; splitting them further would scatter closely related state (for example the resume flags), so I stopped there.
+
+Checks: typecheck, lint and 161 tests pass. Emulator: Play on a genre, jump near the end, the next queue track starts by itself (status handler, queue controller and track loader wired correctly), pause works.
