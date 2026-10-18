@@ -24,12 +24,13 @@ export function AudioPlayer() {
   const isPlaying = usePlayerStore((state) => state.isPlaying);
   const currentTime = usePlayerStore((state) => state.currentTime);
   const duration = usePlayerStore((state) => state.duration);
-  const errorMessage = usePlayerStore((state) => state.errorMessage);
+  const notice = usePlayerStore((state) => state.notice);
   const playbackRate = usePlayerStore((state) => state.playbackRate);
   const togglePlayback = usePlayerStore((state) => state.togglePlayback);
   const seekToFraction = usePlayerStore((state) => state.seekToFraction);
   const skipBySeconds = usePlayerStore((state) => state.skipBySeconds);
   const cyclePlaybackRate = usePlayerStore((state) => state.cyclePlaybackRate);
+  const clearNotice = usePlayerStore((state) => state.clearNotice);
 
   const [scrubFraction, setScrubFraction] = useState<number | null>(null);
 
@@ -41,7 +42,11 @@ export function AudioPlayer() {
 
   return (
     <View style={styles.container}>
-      {errorMessage ? <ErrorMessage message={errorMessage} /> : null}
+      {notice ? (
+        <Pressable accessibilityRole="button" accessibilityHint="Dismiss message" onPress={clearNotice}>
+          <ErrorMessage message={notice} />
+        </Pressable>
+      ) : null}
       <Scrubber fraction={scrubFraction ?? progressFraction} onScrubChange={setScrubFraction} onSeek={seekToFraction} />
       <View style={styles.times}>
         <Text testID="current-time" style={styles.time}>{formatTime(shownTime)}</Text>

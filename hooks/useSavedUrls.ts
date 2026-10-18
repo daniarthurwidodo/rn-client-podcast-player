@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createNoticeTimer } from '../lib/noticeTimer';
 import { loadSavedUrls, saveSavedUrls } from '../lib/savedUrlsStorage';
 import type { SavedUrl } from '../lib/savedUrl';
 import { resolveAudio } from '../modules/newpipe-resolver';
@@ -20,16 +21,23 @@ async function fetchMetadata(url: string): Promise<UrlMetadata | null> {
 export function useSavedUrls() {
   const [savedUrls, setSavedUrls] = useState<SavedUrl[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorTimer] = useState(() => createNoticeTimer(() => setErrorMessage(null)));
   // Async work reads the latest list from here, not from a stale render closure.
   const latestSavedUrls = useRef<SavedUrl[]>([]);
+
+  const showError = (message: string) => {
+    setErrorMessage(message);
+    errorTimer.start();
+  };
 
   const commit = async (nextSavedUrls: SavedUrl[]) => {
     latestSavedUrls.current = nextSavedUrls;
     setSavedUrls(nextSavedUrls);
     try {
       await saveSavedUrls(nextSavedUrls);
+      setErrorMessage((current) => (current === SAVE_ERROR_MESSAGE ? null : current));
     } catch {
-      setErrorMessage(SAVE_ERROR_MESSAGE);
+      showError(SAVE_ERROR_MESSAGE);
     }
   };
 
@@ -52,10 +60,11 @@ export function useSavedUrls() {
         setSavedUrls(loaded);
         await backfillTitles(loaded);
       } catch {
-        setErrorMessage(LOAD_ERROR_MESSAGE);
+        showError(LOAD_ERROR_MESSAGE);
       }
     };
     load();
+    return errorTimer.cancel;
   }, []);
 
   // Rejects when the URL cannot be resolved, so the caller can show the failure.

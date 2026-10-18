@@ -1,4 +1,5 @@
 import { createStore } from 'zustand/vanilla';
+import { createNoticeTimer } from '../lib/noticeTimer.ts';
 import { getResumePosition, MIN_PLAYED_SECONDS } from '../lib/playbackProgress.ts';
 import type { ProgressByUrl } from '../lib/playbackProgress.ts';
 import type { SavedUrl } from '../lib/savedUrl';
@@ -65,6 +66,7 @@ type PlayerData = {
   currentTime: number;
   duration: number;
   errorMessage: string | null;
+  notice: string | null;
   enabledEffects: Record<AudioEffect, boolean>;
   playbackRate: number;
   progressByUrl: ProgressByUrl;
@@ -77,13 +79,15 @@ type PlayerActions = {
   skipBySeconds: (deltaSeconds: number) => Promise<void>;
   cyclePlaybackRate: () => void;
   stop: () => void;
+  clearNotice: () => void;
   toggleEffect: (effect: AudioEffect) => Promise<void>;
 };
 
 export type PlayerState = PlayerData & PlayerActions;
 
+// errorMessage is the fatal error that puts the track in the error phase; notice is a non-fatal one that expires.
 // Effects, speed and saved progress belong to the player, so they survive track changes and stop().
-const IDLE_DATA: Omit<PlayerData, 'enabledEffects' | 'playbackRate' | 'progressByUrl'> = {
+const IDLE_DATA: Omit<PlayerData, 'notice' | 'enabledEffects' | 'playbackRate' | 'progressByUrl'> = {
   track: null,
   phase: 'idle',
   isLoaded: false,
@@ -100,9 +104,11 @@ export function createPlayerStore({ resolveAudio, player, progressStorage }: Pla
   // While set, position updates are not saved: until the resume seek lands they report 0 and would overwrite the saved position.
   let resumeSeconds: number | null = null;
   let isResumeSeekIssued = false;
+  const noticeTimer = createNoticeTimer(() => clearNotice());
 
   const store = createStore<PlayerState>()((set, get) => ({
     ...IDLE_DATA,
+    notice: null,
     enabledEffects: { compressor: false, vocalBoost: false },
     playbackRate: DEFAULT_PLAYBACK_RATE,
     progressByUrl: {},
@@ -112,6 +118,7 @@ export function createPlayerStore({ resolveAudio, player, progressStorage }: Pla
       if (currentTrack?.url === track.url && phase !== 'error') return;
 
       flushProgress();
+      clearNotice();
       player.pause();
       const resumePosition = getResumePosition(get().progressByUrl[track.url]);
       resumeSeconds = resumePosition > 0 ? resumePosition : null;
@@ -158,11 +165,14 @@ export function createPlayerStore({ resolveAudio, player, progressStorage }: Pla
 
     stop: () => {
       flushProgress();
+      clearNotice();
       resumeSeconds = null;
       player.pause();
       player.hideLockScreenControls();
       set(IDLE_DATA);
     },
+
+    clearNotice: () => clearNotice(),
 
     toggleEffect: async (effect) => {
       const { enabledEffects } = get();
@@ -170,11 +180,26 @@ export function createPlayerStore({ resolveAudio, player, progressStorage }: Pla
       try {
         await player.setEffectEnabled(effect, nextEnabled);
         set({ enabledEffects: { ...get().enabledEffects, [effect]: nextEnabled } });
+        clearNoticeIfShowing(EFFECT_ERROR_MESSAGE);
       } catch {
-        set({ errorMessage: EFFECT_ERROR_MESSAGE });
+        showNotice(EFFECT_ERROR_MESSAGE);
       }
     },
   }));
+
+  const clearNotice = () => {
+    noticeTimer.cancel();
+    store.setState({ notice: null });
+  };
+
+  const showNotice = (message: string) => {
+    store.setState({ notice: message });
+    noticeTimer.start();
+  };
+
+  const clearNoticeIfShowing = (message: string) => {
+    if (store.getState().notice === message) clearNotice();
+  };
 
   const seekWithinTrack = async (targetSeconds: number) => {
     const { phase, isLoaded, duration } = store.getState();
@@ -183,8 +208,9 @@ export function createPlayerStore({ resolveAudio, player, progressStorage }: Pla
     resumeSeconds = null;
     try {
       await player.seekTo(Math.min(Math.max(targetSeconds, 0), duration));
+      clearNoticeIfShowing(SEEK_ERROR_MESSAGE);
     } catch {
-      store.setState({ errorMessage: SEEK_ERROR_MESSAGE });
+      showNotice(SEEK_ERROR_MESSAGE);
     }
   };
 
@@ -195,8 +221,9 @@ export function createPlayerStore({ resolveAudio, player, progressStorage }: Pla
     store.setState({ progressByUrl });
     try {
       await progressStorage.save(progressByUrl);
+      clearNoticeIfShowing(PROGRESS_SAVE_ERROR_MESSAGE);
     } catch {
-      store.setState({ errorMessage: PROGRESS_SAVE_ERROR_MESSAGE });
+      showNotice(PROGRESS_SAVE_ERROR_MESSAGE);
     }
   };
 
@@ -219,7 +246,7 @@ export function createPlayerStore({ resolveAudio, player, progressStorage }: Pla
       await player.seekTo(targetSeconds);
     } catch {
       resumeSeconds = null;
-      store.setState({ errorMessage: SEEK_ERROR_MESSAGE });
+      showNotice(SEEK_ERROR_MESSAGE);
     }
   };
 
@@ -237,7 +264,7 @@ export function createPlayerStore({ resolveAudio, player, progressStorage }: Pla
       const savedProgress = await progressStorage.load();
       store.setState({ progressByUrl: { ...savedProgress, ...store.getState().progressByUrl } });
     } catch {
-      store.setState({ errorMessage: PROGRESS_LOAD_ERROR_MESSAGE });
+      showNotice(PROGRESS_LOAD_ERROR_MESSAGE);
     }
   };
 

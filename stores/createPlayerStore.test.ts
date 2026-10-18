@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { NOTICE_DURATION_MS } from '../lib/noticeTimer.ts';
 import { createPlayerStore, PLAYBACK_RATES } from './createPlayerStore.ts';
 import type { PlaybackStatus } from './createPlayerStore.ts';
 import type { ProgressByUrl } from '../lib/playbackProgress.ts';
@@ -15,6 +16,7 @@ function createFakes(
   initialProgress: ProgressByUrl = {},
   shouldFailProgressSave = false,
 ) {
+  let isSeekFailing = false;
   const calls: string[] = [];
   const savedProgress: ProgressByUrl[] = [];
   let listener: (status: PlaybackStatus) => void = () => {};
@@ -23,6 +25,7 @@ function createFakes(
     play: () => calls.push('play'),
     pause: () => calls.push('pause'),
     seekTo: async (seconds: number) => {
+      if (isSeekFailing) throw new Error('seek failed');
       calls.push(`seek ${seconds}`);
     },
     setPlaybackRate: (rate: number) => calls.push(`rate ${rate}`),
@@ -53,7 +56,13 @@ function createFakes(
     },
   };
   const store = createPlayerStore({ resolveAudio, player, progressStorage });
-  return { store, calls, savedProgress, emitStatus: (status: PlaybackStatus) => listener(status) };
+  return {
+    store,
+    calls,
+    savedProgress,
+    emitStatus: (status: PlaybackStatus) => listener(status),
+    setSeekFailing: (isFailing: boolean) => (isSeekFailing = isFailing),
+  };
 }
 
 test('starts idle with no track', () => {
@@ -230,13 +239,15 @@ test('effects are toggled independently of each other', async () => {
   assert.deepEqual(store.getState().enabledEffects, { compressor: false, vocalBoost: true });
 });
 
-test('toggleEffect keeps the old setting and reports an error when it fails', async () => {
+test('toggleEffect keeps the old setting and shows a notice when it fails', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
   const { store } = createFakes(undefined, true);
 
   await store.getState().toggleEffect('vocalBoost');
 
   assert.equal(store.getState().enabledEffects.vocalBoost, false);
-  assert.ok(store.getState().errorMessage);
+  assert.ok(store.getState().notice);
+  assert.equal(store.getState().errorMessage, null);
 });
 
 test('effect settings survive loading another track and stop()', async () => {
@@ -401,7 +412,8 @@ test('starts a completed track from the beginning', async () => {
   assert.equal(calls.some((call) => call.startsWith('seek')), false);
 });
 
-test('reports a progress save failure without stopping playback', async () => {
+test('reports a progress save failure without stopping playback', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
   const { store, emitStatus } = createFakes(undefined, false, false, {}, true);
   await store.getState().loadTrack(TRACK_A);
 
@@ -409,7 +421,8 @@ test('reports a progress save failure without stopping playback', async () => {
   await waitForStorage();
 
   assert.equal(store.getState().phase, 'ready');
-  assert.equal(store.getState().errorMessage, 'Could not save your listening progress');
+  assert.equal(store.getState().notice, 'Could not save your listening progress');
+  assert.equal(store.getState().errorMessage, null);
 });
 
 const seeksIn = (calls: string[]) => calls.filter((call) => call.startsWith('seek'));
@@ -471,4 +484,95 @@ test('does not touch the rate when it is the default', async () => {
   await store.getState().loadTrack(TRACK_A);
 
   assert.equal(calls.some((call) => call.startsWith('rate')), false);
+});
+
+async function createReadyStoreWithFailingSeek(t: { mock: { timers: { enable: (options: { apis: 'setTimeout'[] }) => void } } }) {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const fakes = createFakes();
+  await fakes.store.getState().loadTrack(TRACK_A);
+  fakes.emitStatus(statusAt(10));
+  fakes.setSeekFailing(true);
+  return fakes;
+}
+
+test('a failed seek shows a notice and keeps the track playable', async (t) => {
+  const { store } = await createReadyStoreWithFailingSeek(t);
+
+  await store.getState().skipBySeconds(30);
+
+  assert.ok(store.getState().notice);
+  assert.equal(store.getState().phase, 'ready');
+  assert.equal(store.getState().errorMessage, null);
+});
+
+test('a notice clears itself after the notice duration', async (t) => {
+  const { store } = await createReadyStoreWithFailingSeek(t);
+  await store.getState().skipBySeconds(30);
+
+  t.mock.timers.tick(NOTICE_DURATION_MS - 1);
+  assert.ok(store.getState().notice);
+
+  t.mock.timers.tick(1);
+  assert.equal(store.getState().notice, null);
+});
+
+test('a second notice restarts the timer instead of being cleared early', async (t) => {
+  const { store } = await createReadyStoreWithFailingSeek(t);
+  await store.getState().skipBySeconds(30);
+  t.mock.timers.tick(NOTICE_DURATION_MS - 1);
+
+  await store.getState().skipBySeconds(30);
+  t.mock.timers.tick(NOTICE_DURATION_MS - 1);
+
+  assert.ok(store.getState().notice);
+});
+
+test('a successful seek clears the seek notice at once', async (t) => {
+  const { store, setSeekFailing } = await createReadyStoreWithFailingSeek(t);
+  await store.getState().skipBySeconds(30);
+
+  setSeekFailing(false);
+  await store.getState().skipBySeconds(30);
+
+  assert.equal(store.getState().notice, null);
+});
+
+test('clearNotice dismisses the notice', async (t) => {
+  const { store } = await createReadyStoreWithFailingSeek(t);
+  await store.getState().skipBySeconds(30);
+
+  store.getState().clearNotice();
+
+  assert.equal(store.getState().notice, null);
+});
+
+test('stop clears the notice', async (t) => {
+  const { store } = await createReadyStoreWithFailingSeek(t);
+  await store.getState().skipBySeconds(30);
+
+  store.getState().stop();
+
+  assert.equal(store.getState().notice, null);
+});
+
+test('loading another track clears the notice', async (t) => {
+  const { store } = await createReadyStoreWithFailingSeek(t);
+  await store.getState().skipBySeconds(30);
+
+  await store.getState().loadTrack(TRACK_B);
+
+  assert.equal(store.getState().notice, null);
+});
+
+test('a fatal error stays until the track is reloaded', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const { store } = createFakes(async () => {
+    throw new Error('offline');
+  });
+  await store.getState().loadTrack(TRACK_A);
+
+  t.mock.timers.tick(NOTICE_DURATION_MS * 2);
+
+  assert.equal(store.getState().phase, 'error');
+  assert.ok(store.getState().errorMessage);
 });

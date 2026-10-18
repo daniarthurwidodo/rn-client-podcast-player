@@ -95,7 +95,7 @@ Storage keys: `saved-urls`, `playback-progress`.
 | Header | title "Podcasts" + "N saved" chip | N counts the whole library |
 | Paste bar | `PasteBar` | "Paste a YouTube or web audio link…" + **Paste**; tap anywhere reads the clipboard and opens the Add modal (prefilled if it holds an http(s) link) |
 | Filter chips | `FilterChips` (horizontal scroll) | All / Unplayed / In Progress / Completed, each with a count; hidden while the library is empty |
-| Load/save error banner | red text | `Could not load your saved URLs` / `Could not save your URL`; never auto-clears |
+| Load/save error banner | red text | `Could not load your saved URLs` / `Could not save your URL`; clears after 5 s, or when the next save succeeds |
 | List | `FlatList` of `SavedUrlItem` | See card below |
 | Empty states | text | Empty library: "Tap Paste URL to add a link"; empty filter: "Nothing here yet" |
 | Sound Studio Engine | `EffectsPanel` (list footer) | Vocal boost + Compressor switches, "Active DSP" indicator when either is on |
@@ -113,11 +113,11 @@ Storage keys: `saved-urls`, `playback-progress`.
 |---|---|
 | No track | "Nothing is playing" |
 | `resolving` | 16:9 artwork, host badge, title, spinner + "Fetching audio info…" |
-| `error` | artwork, title, red error text. No retry button — go back and tap the item again |
+| `error` | artwork, title, red error text and an amber **Retry** button (reloads the track, resuming the saved position). The error stays until retried |
 | `ready`, not loaded | spinner + "Loading audio…" (also shows briefly while a far seek buffers) |
 | `ready` | Full `AudioPlayer` (below) |
 
-**`AudioPlayer`:** `Scrubber` (6 px track, amber fill, 16 px thumb growing to 22 px on touch; tap or drag; time label follows the finger) → elapsed / "Buffering…" (only while buffering) / total → transport row: ⟲15, Play/Pause (64 px, amber glow while playing), ⟳30 → speed chip (amber when ≠ 1×) → Sound Studio Engine switches. A failed seek/effect shows an inline error that stays until the next track load.
+**`AudioPlayer`:** `Scrubber` (6 px track, amber fill, 16 px thumb growing to 22 px on touch; tap or drag; time label follows the finger) → elapsed / "Buffering…" (only while buffering) / total → transport row: ⟲15, Play/Pause (64 px, amber glow while playing), ⟳30 → speed chip (amber when ≠ 1×). A failed seek or progress save shows an inline notice that clears after 5 s, on tap, when the same action next succeeds, or on the next track load.
 
 ### 6.3 Mini Player (`components/MiniPlayer.tsx`)
 
@@ -146,8 +146,8 @@ Title and artwork are published via `setActiveForLockScreen`; cleared on `stop()
 | 2 | Resume position | Done (F16–F18) |
 | 3 | Draggable seek | Done (F22) |
 | 4 | Skip controls | Done (F23) |
-| 5 | Retry button on player error | Open |
-| 6 | Errors that auto-clear | Open |
+| 5 | Retry button on player error | Done |
+| 6 | Errors that auto-clear | Done — non-fatal notices only; the fatal player error stays until retried |
 | 7 | Feedback when adding a duplicate | Open |
 | 8 | Friendly empty state (icon + CTA) | Partial — text only |
 | 9 | Paste button / Android Share target | Paste done (F20); Share target open |
