@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatTime } from '../lib/formatTime';
 import { colors, fonts, radii, spacing } from '../lib/theme';
-import { usePlayerStore } from '../stores/playerStore';
+import { usePlayerStore } from '../src/business/player/playerStore';
 import { QueueButton } from './QueueButton';
 import { Scrubber } from './Scrubber';
 import { SkipButton } from './SkipButton';

@@ -7,7 +7,7 @@ import {
   pruneStale,
   RESOLVED_AUDIO_TTL_MS,
 } from './resolvedAudioCache.ts';
-import type { CacheEntries } from '../src/data/models.ts';
+import type { CacheEntries } from '../../data/models.ts';
 
 const URL_A = 'https://youtu.be/aaaaaaaaaaa';
 const URL_B = 'https://youtu.be/bbbbbbbbbbb';

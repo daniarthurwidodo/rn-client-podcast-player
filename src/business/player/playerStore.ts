@@ -1,7 +1,7 @@
 import { useStore } from 'zustand';
-import { expoAudioPlayerPort } from '../src/data/device/audioPlayer';
-import { loadProgress, saveProgress } from '../src/data/storage/progressRepository';
-import { resolveAudio } from '../lib/resolveAudio';
+import { expoAudioPlayerPort } from '../../data/device/audioPlayer';
+import { loadProgress, saveProgress } from '../../data/storage/progressRepository';
+import { resolveAudio } from '../resolveAudio';
 import { createPlayerStore } from './createPlayerStore';
 import type { PlayerState } from './createPlayerStore';
 

@@ -3,15 +3,11 @@ const { defineConfig } = require('eslint/config');
 const expoConfig = require('eslint-config-expo/flat');
 
 // Layers depend downwards only: presentation -> business -> data. See documentation/tehnical-solution/three layer architecture.md.
-const UPPER_LAYER_PATTERNS = [
-  '**/lib/**',
-  '**/stores/**',
-  '**/hooks/**',
-  '**/components/**',
-  '**/app/**',
-  '**/business/**',
-  '**/presentation/**',
-];
+// `lib/`, `components/` and `app/` still hold presentation code until the presentation phase moves it under src/presentation.
+const PRESENTATION_PATTERNS = ['**/lib/**', '**/components/**', '**/app/**', '**/presentation/**'];
+const BUSINESS_PATTERNS = ['**/business/**'];
+
+const DEVICE_PACKAGES = ['react-native', 'react-native-*', 'expo-*', 'lucide-react-native', '@react-native-async-storage/*'];
 
 module.exports = defineConfig([
   expoConfig,
@@ -23,7 +19,25 @@ module.exports = defineConfig([
     rules: {
       'no-restricted-imports': [
         'error',
-        { patterns: [{ group: UPPER_LAYER_PATTERNS, message: 'The data layer must not import from the business or presentation layer.' }] },
+        {
+          patterns: [
+            { group: [...BUSINESS_PATTERNS, ...PRESENTATION_PATTERNS], message: 'The data layer must not import from the business or presentation layer.' },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/business/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            { group: PRESENTATION_PATTERNS, message: 'The business layer must not import from the presentation layer.' },
+            { group: DEVICE_PACKAGES, message: 'The business layer reaches devices and storage through src/data, not directly.' },
+          ],
+        },
       ],
     },
   },

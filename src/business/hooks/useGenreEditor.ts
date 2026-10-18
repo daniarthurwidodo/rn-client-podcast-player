@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { SavedUrl } from '../src/data/models';
+import type { SavedUrl } from '../../data/models';
 
 // Tracks the item by URL so the sheet always shows its latest genres while they are being edited.
 export function useGenreEditor(savedUrls: SavedUrl[]) {

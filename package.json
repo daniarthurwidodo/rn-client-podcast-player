@@ -36,8 +36,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "node --test \"lib/*.test.ts\" \"stores/*.test.ts\" \"src/data/**/*.test.ts\"",
-    "lint": "expo lint app components src hooks lib stores"
+    "test": "node --test \"lib/*.test.ts\" \"src/**/*.test.ts\"",
+    "lint": "expo lint app components src lib"
   },
   "private": true
 }

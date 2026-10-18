@@ -1,4 +1,4 @@
-import type { SavedUrl } from '../src/data/models';
+import type { SavedUrl } from '../../data/models';
 
 export type RepeatMode = 'off' | 'all' | 'one';
 

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import type { SavedUrl } from '../src/data/models';
-import { loadSavedUrls, saveSavedUrls } from '../src/data/storage/savedUrlsRepository';
-import { addGenre, removeGenre } from '../lib/genres';
-import { createNoticeTimer } from '../lib/noticeTimer';
-import { resolveAudio } from '../lib/resolveAudio';
+import type { SavedUrl } from '../../data/models';
+import { loadSavedUrls, saveSavedUrls } from '../../data/storage/savedUrlsRepository';
+import { addGenre, removeGenre } from '../logic/genres';
+import { createNoticeTimer } from '../logic/noticeTimer';
+import { resolveAudio } from '../resolveAudio';
 
 const LOAD_ERROR_MESSAGE = 'Could not load your saved URLs';
 const SAVE_ERROR_MESSAGE = 'Could not save your URL';
@@ -66,6 +66,8 @@ export function useSavedUrls() {
     };
     load();
     return errorTimer.cancel;
+    // Runs once on mount: the helpers it calls only use refs, setters and a stable timer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Rejects when the URL cannot be resolved, so the caller can show the failure.

@@ -1,10 +1,10 @@
 import { createStore } from 'zustand/vanilla';
-import type { AudioEffect, AudioPlayerPort, PlaybackStatus, ProgressStoragePort } from '../src/data/ports.ts';
-import { createNoticeTimer } from '../lib/noticeTimer.ts';
-import { getResumePosition, MIN_PLAYED_SECONDS } from '../lib/playbackProgress.ts';
-import type { ProgressByUrl, SavedUrl } from '../src/data/models.ts';
-import { buildQueue, cycleRepeatMode, getNextStep, getPreviousStep, isLoopingTrack, reorderQueue } from '../lib/queue.ts';
-import type { QueueState, RepeatMode } from '../lib/queue.ts';
+import type { AudioEffect, AudioPlayerPort, PlaybackStatus, ProgressStoragePort } from '../../data/ports.ts';
+import { createNoticeTimer } from '../logic/noticeTimer.ts';
+import { getResumePosition, MIN_PLAYED_SECONDS } from '../logic/playbackProgress.ts';
+import type { ProgressByUrl, SavedUrl } from '../../data/models.ts';
+import { buildQueue, cycleRepeatMode, getNextStep, getPreviousStep, isLoopingTrack, reorderQueue } from '../logic/queue.ts';
+import type { QueueState, RepeatMode } from '../logic/queue.ts';
 
 const RESOLVE_ERROR_MESSAGE = 'Could not load audio for this URL';
 const SEEK_ERROR_MESSAGE = 'Could not seek in this audio';

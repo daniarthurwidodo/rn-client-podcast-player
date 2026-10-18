@@ -1,6 +1,6 @@
-import type { CacheEntries, CachedEntry } from '../src/data/models';
-import type { ResolvedAudioStoragePort } from '../src/data/ports';
-import type { ResolvedAudio } from '../modules/newpipe-resolver';
+import type { CacheEntries, CachedEntry } from '../../data/models';
+import type { ResolvedAudioStoragePort } from '../../data/ports';
+import type { ResolvedAudio } from '../../../modules/newpipe-resolver';
 
 // Measured: YouTube stream URLs live 6 hours. Stay under that, and leave a margin so a URL is never handed out right before it dies.
 export const RESOLVED_AUDIO_TTL_MS = 5 * 60 * 60 * 1000;

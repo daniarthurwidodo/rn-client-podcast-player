@@ -1,9 +1,0 @@
-import { loadResolvedAudio, saveResolvedAudio } from '../src/data/storage/resolvedAudioRepository';
-import { resolveAudio as resolveAudioNatively } from '../modules/newpipe-resolver';
-import { createCachedResolveAudio } from './resolvedAudioCache';
-
-export const resolveAudio = createCachedResolveAudio({
-  resolve: resolveAudioNatively,
-  storage: { load: loadResolvedAudio, save: saveResolvedAudio },
-  now: Date.now,
-});

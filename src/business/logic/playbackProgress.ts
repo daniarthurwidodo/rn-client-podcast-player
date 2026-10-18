@@ -1,4 +1,4 @@
-import type { PlaybackProgress, ProgressByUrl, SavedUrl } from '../src/data/models';
+import type { PlaybackProgress, ProgressByUrl, SavedUrl } from '../../data/models';
 
 export type ProgressState = 'unplayed' | 'inProgress' | 'completed';
 

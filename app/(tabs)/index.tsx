@@ -8,14 +8,9 @@ import { GenrePlayActions } from '../../components/GenrePlayActions';
 import { GenreSheet } from '../../components/GenreSheet';
 import { PasteBar } from '../../components/PasteBar';
 import { SavedUrlItem } from '../../components/SavedUrlItem';
-import { useAddUrlModal } from '../../hooks/useAddUrlModal';
-import { useGenreEditor } from '../../hooks/useGenreEditor';
-import { useLibraryView } from '../../hooks/useLibraryView';
-import { useSavedUrls } from '../../hooks/useSavedUrls';
-import { isSameGenre } from '../../lib/genres';
+import { useHomeScreen } from '../../src/business/hooks/useHomeScreen';
 import type { SavedUrl } from '../../src/data/models';
 import { colors, fonts, radii, spacing } from '../../lib/theme';
-import { usePlayerStore } from '../../stores/playerStore';
 
 const PLAYER_PATH = '/player';
 const SCREEN_TITLE = 'Podcasts';
@@ -30,33 +25,17 @@ function ItemSeparator() {
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const savedUrls = useSavedUrls();
-  const addUrl = useAddUrlModal(savedUrls.addUrl);
-  const playingUrl = usePlayerStore((state) => state.track?.url);
-  const progressByUrl = usePlayerStore((state) => state.progressByUrl);
-  const loadTrack = usePlayerStore((state) => state.loadTrack);
-  const playQueue = usePlayerStore((state) => state.playQueue);
-  const stopPlayback = usePlayerStore((state) => state.stop);
-
-  const library = useLibraryView(savedUrls.savedUrls, progressByUrl);
-  const genreEditor = useGenreEditor(savedUrls.savedUrls);
-  const isLibraryEmpty = savedUrls.savedUrls.length === 0;
-  const editingGenres = genreEditor.editingItem?.genres ?? [];
-  const genreSuggestions = library.genreCounts.map((genre) => genre.name).filter((name) => !editingGenres.some((genre) => isSameGenre(genre, name)));
+  const home = useHomeScreen();
+  const { view, genreEditor, addUrl } = home;
 
   const openPlayer = (item: SavedUrl) => {
-    loadTrack(item);
+    home.playTrack(item);
     router.push(PLAYER_PATH);
   };
 
   const playGenre = (shuffle: boolean) => {
-    playQueue(library.visibleUrls, { shuffle });
+    home.playVisibleAsQueue(shuffle);
     router.push(PLAYER_PATH);
-  };
-
-  const deleteUrl = (url: string) => {
-    if (url === playingUrl) stopPlayback();
-    savedUrls.removeUrl(url);
   };
 
   return (
@@ -64,33 +43,33 @@ export default function HomeScreen() {
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
         <Text style={styles.title}>{SCREEN_TITLE}</Text>
         <View style={styles.countChip}>
-          <Text style={styles.countLabel}>{`${savedUrls.savedUrls.length} saved`}</Text>
+          <Text style={styles.countLabel}>{`${home.savedUrls.length} saved`}</Text>
         </View>
       </View>
       <PasteBar onPaste={addUrl.openFromClipboard} />
-      {isLibraryEmpty ? null : (
-        <FilterChips counts={library.progressCounts} selected={library.filter} onSelect={library.setFilter} />
+      {home.isLibraryEmpty ? null : (
+        <FilterChips counts={view.progressCounts} selected={view.filter} onSelect={view.setFilter} />
       )}
-      {library.genreCounts.length === 0 ? null : (
-        <GenreChips genres={library.genreCounts} selected={library.selectedGenre} onSelect={library.toggleGenre} />
+      {view.genreCounts.length === 0 ? null : (
+        <GenreChips genres={view.genreCounts} selected={view.selectedGenre} onSelect={view.toggleGenre} />
       )}
-      {library.selectedGenre === null || library.visibleUrls.length === 0 ? null : (
+      {view.selectedGenre === null || view.visibleUrls.length === 0 ? null : (
         <GenrePlayActions onPlay={() => playGenre(false)} onShuffle={() => playGenre(true)} />
       )}
-      {savedUrls.errorMessage ? <Text style={styles.error}>{savedUrls.errorMessage}</Text> : null}
+      {home.errorMessage ? <Text style={styles.error}>{home.errorMessage}</Text> : null}
       <FlatList
-        data={library.visibleUrls}
+        data={view.visibleUrls}
         keyExtractor={(item) => item.url}
         contentContainerStyle={styles.list}
         ItemSeparatorComponent={ItemSeparator}
-        ListEmptyComponent={<Text style={styles.empty}>{isLibraryEmpty ? EMPTY_LIBRARY_MESSAGE : EMPTY_FILTER_MESSAGE}</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>{home.isLibraryEmpty ? EMPTY_LIBRARY_MESSAGE : EMPTY_FILTER_MESSAGE}</Text>}
         renderItem={({ item }) => (
           <SavedUrlItem
             item={item}
-            progress={progressByUrl[item.url]}
-            isCurrent={item.url === playingUrl}
+            progress={home.progressByUrl[item.url]}
+            isCurrent={item.url === home.playingUrl}
             onPress={openPlayer}
-            onDelete={deleteUrl}
+            onDelete={home.deleteUrl}
             onEditGenres={genreEditor.open}
           />
         )}
@@ -107,9 +86,9 @@ export default function HomeScreen() {
       <GenreSheet
         isVisible={genreEditor.editingItem !== null}
         item={genreEditor.editingItem}
-        suggestions={genreSuggestions}
-        onAdd={(genre) => genreEditor.editingItem && savedUrls.addItemGenre(genreEditor.editingItem.url, genre)}
-        onRemove={(genre) => genreEditor.editingItem && savedUrls.removeItemGenre(genreEditor.editingItem.url, genre)}
+        suggestions={home.genreSuggestions}
+        onAdd={home.addEditingGenre}
+        onRemove={home.removeEditingGenre}
         onClose={genreEditor.close}
       />
     </View>

@@ -184,3 +184,21 @@ Deviations from the plan above, and why:
 Checks: typecheck, lint and 161 tests pass (163 before: removed `parseGenres`' test and merged two genre-parse tests into one). Emulator after the move: app boots with no errors, saved list loads through the new parser, the Paste bar opens the Add modal (clipboard adapter), a track plays and the genre badges show on the Player.
 
 Behaviour change (decision 2): a stored genre list that is not normalised is no longer cleaned on load.
+
+## 12. Phase 2 status — done (business layer)
+
+Moved with `git mv` into `src/business/`, imports rewritten by a script that resolves each specifier against the old layout:
+- `logic/`: `genres`, `queue`, `playbackProgress`, `resolvedAudioCache`, `noticeTimer`, `parseHttpUrl` (+ their tests).
+- `player/`: `createPlayerStore` (+ test) and `playerStore` (the composition root).
+- `hooks/`: `useSavedUrls`, `useLibraryView`, `useGenreEditor`, `useAddUrlModal`, and the new **`useHomeScreen`**.
+- `resolveAudio.ts`.
+
+`useHomeScreen` (new, 39 lines) combines the four existing hooks and the player store actions and now owns what the Home screen used to compute: genre suggestions, "delete also stops the playing track", "play the shown list as a queue", and adding/removing a genre on the item being edited. The screen keeps only rendering and `router.push`. `app/(tabs)/index.tsx` lost its store and hook imports.
+
+Enforcement: `src/business/**` may not import presentation folders (`lib/`, `components/`, `app/`, `presentation/`) or device/storage packages (`react-native*`, `expo-*`, `lucide-react-native`, AsyncStorage). Both rules were proved with a deliberate violation (each failed with its message) and the probe file removed. The `modules/` native modules are counted as the data layer, so business may import them (`resolveAudio.ts` does, for the NewPipe resolver).
+
+Also done: the `react-hooks/exhaustive-deps` warning in `useSavedUrls` is silenced with a one-line reason (mount-only effect whose helpers only use refs, setters and a stable timer); test script is now `lib/*.test.ts` + `src/**/*.test.ts`; lint script is `expo lint app components src lib`.
+
+Checks: typecheck clean, lint clean (0 warnings), 161 tests pass. Emulator: app boots; add genre and remove genre through the new hook callbacks; selecting the genre and pressing Play opens the Player with the playlist panel, queue controls and the current track's genres. Not exercised on the device: deleting an item through the new `deleteUrl` (it deletes data; the logic is unchanged and typechecked).
+
+Still in the old folders (moved in Phase 3): `lib/` (`theme`, `formatTime`, `formatDuration`, `hostLabel` + their tests), `components/`, `app/`. `hooks/` and `stores/` are gone.
