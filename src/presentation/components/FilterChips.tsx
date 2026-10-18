@@ -34,5 +34,5 @@ export function FilterChips({ counts, selected, onSelect }: Props) {
 
 const styles = StyleSheet.create({
   scroll: { flexGrow: 0 },
-  row: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.sm },
+  row: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.sm, gap: spacing.sm },
 });
