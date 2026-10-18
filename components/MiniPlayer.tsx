@@ -1,20 +1,18 @@
-import { usePathname, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Pause, Play } from 'lucide-react-native';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatTime } from '../lib/formatTime';
+import { colors, fonts, radii, spacing } from '../lib/theme';
 import { usePlayerStore } from '../stores/playerStore';
 
 const PLAYER_PATH = '/player';
 const FETCHING_INFO_MESSAGE = 'Fetching audio info...';
 const BUFFERING_MESSAGE = 'Buffering...';
-const TOGGLE_ICON_SIZE = 24;
+const TOGGLE_ICON_SIZE = 20;
 const PERCENT = 100;
 
 export function MiniPlayer() {
   const router = useRouter();
-  const pathname = usePathname();
-  const insets = useSafeAreaInsets();
   const track = usePlayerStore((state) => state.track);
   const phase = usePlayerStore((state) => state.phase);
   const isLoaded = usePlayerStore((state) => state.isLoaded);
@@ -25,7 +23,7 @@ export function MiniPlayer() {
   const errorMessage = usePlayerStore((state) => state.errorMessage);
   const togglePlayback = usePlayerStore((state) => state.togglePlayback);
 
-  if (!track || pathname === PLAYER_PATH) return null;
+  if (!track) return null;
 
   const progressFraction = duration > 0 ? currentTime / duration : 0;
   const isReady = phase === 'ready' && isLoaded;
@@ -35,10 +33,10 @@ export function MiniPlayer() {
     ready: isBuffering ? BUFFERING_MESSAGE : `${formatTime(currentTime)} / ${formatTime(duration)}`,
     idle: '',
   }[phase];
+  const ToggleIcon = isPlaying ? Pause : Play;
 
   return (
-    <View testID="mini-player" style={[styles.bar, { paddingBottom: insets.bottom }]}>
-      <View style={[styles.progress, { width: `${progressFraction * PERCENT}%` }]} />
+    <View testID="mini-player" style={styles.pill}>
       <Pressable style={styles.content} onPress={() => router.push(PLAYER_PATH)}>
         {track.thumbnailUrl ? (
           <Image source={{ uri: track.thumbnailUrl }} style={styles.thumbnail} />
@@ -56,23 +54,39 @@ export function MiniPlayer() {
             style={styles.toggle}
             onPress={togglePlayback}
           >
-            {isPlaying ? <Pause color="#2563eb" fill="#2563eb" size={TOGGLE_ICON_SIZE} /> : <Play color="#2563eb" fill="#2563eb" size={TOGGLE_ICON_SIZE} />}
+            <ToggleIcon color={colors.onPrimary} fill={colors.onPrimary} size={TOGGLE_ICON_SIZE} />
           </Pressable>
         ) : null}
       </Pressable>
+      <View style={[styles.progress, { width: `${progressFraction * PERCENT}%` }]} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: { backgroundColor: '#f3f4f6', borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#ccc' },
-  progress: { height: 2, backgroundColor: '#2563eb' },
-  content: { flexDirection: 'row', alignItems: 'center', padding: 10 },
-  thumbnail: { width: 64, height: 36, borderRadius: 4 },
-  placeholder: { backgroundColor: '#e5e7eb' },
-  text: { flex: 1, marginLeft: 10 },
-  title: { fontSize: 14, fontWeight: '600' },
-  subtitle: { color: '#555', fontSize: 12, marginTop: 2 },
-  error: { color: '#dc2626', fontSize: 12, marginTop: 2 },
-  toggle: { padding: 10 },
+  pill: {
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    overflow: 'hidden',
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.stroke,
+    borderRadius: radii.sheet,
+  },
+  content: { flexDirection: 'row', alignItems: 'center', padding: spacing.sm },
+  thumbnail: { width: 40, height: 40, borderRadius: spacing.sm + spacing.xs },
+  placeholder: { backgroundColor: colors.stroke },
+  text: { flex: 1, marginLeft: spacing.sm + spacing.xs },
+  title: { color: colors.textHigh, fontFamily: fonts.headlineSemiBold, fontSize: 14 },
+  subtitle: { color: colors.textSupporting, fontFamily: fonts.body, fontSize: 12, marginTop: 2 },
+  error: { color: colors.error, fontFamily: fonts.body, fontSize: 12, marginTop: 2 },
+  toggle: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.pill,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progress: { position: 'absolute', left: 0, bottom: 0, height: 2, backgroundColor: colors.primary },
 });

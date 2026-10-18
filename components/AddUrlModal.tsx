@@ -1,4 +1,5 @@
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { colors, fonts, radii, spacing } from '../lib/theme';
 
 const CHECKING_URL_MESSAGE = 'Checking URL...';
 
@@ -26,7 +27,8 @@ export function AddUrlModal({ isVisible, isSubmitting, input, errorMessage, onCh
             onSubmitEditing={onSubmit}
             editable={!isSubmitting}
             placeholder="https://..."
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={colors.textMuted}
+            selectionColor={colors.primary}
             autoFocus
             autoCapitalize="none"
             autoCorrect={false}
@@ -35,7 +37,7 @@ export function AddUrlModal({ isVisible, isSubmitting, input, errorMessage, onCh
           />
           {isSubmitting ? (
             <View style={styles.checking}>
-              <ActivityIndicator size="small" />
+              <ActivityIndicator size="small" color={colors.primary} />
               <Text style={styles.checkingText}>{CHECKING_URL_MESSAGE}</Text>
             </View>
           ) : null}
@@ -44,7 +46,7 @@ export function AddUrlModal({ isVisible, isSubmitting, input, errorMessage, onCh
             <Pressable onPress={onClose} disabled={isSubmitting} style={styles.action}>
               <Text style={styles.cancel}>Cancel</Text>
             </Pressable>
-            <Pressable onPress={onSubmit} disabled={isSubmitting} style={styles.action}>
+            <Pressable onPress={onSubmit} disabled={isSubmitting} style={[styles.action, styles.confirmButton]}>
               <Text style={isSubmitting ? styles.confirmDisabled : styles.confirm}>Add</Text>
             </Pressable>
           </View>
@@ -57,19 +59,35 @@ export function AddUrlModal({ isVisible, isSubmitting, input, errorMessage, onCh
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: colors.backdrop,
     justifyContent: 'center',
-    padding: 24,
+    padding: spacing.lg,
   },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 20 },
-  title: { fontSize: 18, fontWeight: '600', marginBottom: 12 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, color: '#000' },
-  checking: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
-  checkingText: { color: '#555', marginLeft: 8 },
-  error: { color: '#dc2626', marginTop: 8 },
-  actions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 },
-  action: { paddingVertical: 8, paddingHorizontal: 16 },
-  cancel: { color: '#555' },
-  confirm: { color: '#2563eb', fontWeight: '600' },
-  confirmDisabled: { color: '#9ca3af', fontWeight: '600' },
+  card: {
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.stroke,
+    borderRadius: radii.sheet,
+    padding: spacing.lg,
+  },
+  title: { color: colors.textHigh, fontFamily: fonts.headlineSemiBold, fontSize: 18, marginBottom: spacing.sm + spacing.xs },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.stroke,
+    borderRadius: radii.card,
+    paddingVertical: spacing.sm + spacing.xs,
+    paddingHorizontal: spacing.md,
+    color: colors.textHigh,
+    fontFamily: fonts.body,
+    backgroundColor: colors.surface,
+  },
+  checking: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm },
+  checkingText: { color: colors.textSupporting, fontFamily: fonts.body, marginLeft: spacing.sm },
+  error: { color: colors.error, fontFamily: fonts.body, marginTop: spacing.sm },
+  actions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: spacing.md },
+  action: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
+  confirmButton: { marginLeft: spacing.sm, borderRadius: radii.pill, backgroundColor: colors.primary },
+  cancel: { color: colors.textSupporting, fontFamily: fonts.labelSemiBold },
+  confirm: { color: colors.onPrimary, fontFamily: fonts.labelBold },
+  confirmDisabled: { color: colors.textMuted, fontFamily: fonts.labelBold },
 });

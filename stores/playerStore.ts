@@ -1,6 +1,7 @@
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { PermissionsAndroid, Platform } from 'react-native';
 import { useStore } from 'zustand';
+import { loadProgress, saveProgress } from '../lib/progressStorage';
 import { setEffectEnabled } from '../modules/audio-effects';
 import { resolveAudio } from '../modules/newpipe-resolver';
 import { createPlayerStore } from './createPlayerStore';
@@ -33,7 +34,11 @@ const expoAudioPlayerPort: AudioPlayerPort = {
   },
 };
 
-const playerStore = createPlayerStore({ resolveAudio, player: expoAudioPlayerPort });
+const playerStore = createPlayerStore({
+  resolveAudio,
+  player: expoAudioPlayerPort,
+  progressStorage: { load: loadProgress, save: saveProgress },
+});
 
 export function usePlayerStore<Selected>(selector: (state: PlayerState) => Selected): Selected {
   return useStore(playerStore, selector);

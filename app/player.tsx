@@ -1,6 +1,7 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { ErrorMessage, LoadingMessage } from '../components/StatusMessage';
+import { colors, fonts, radii, spacing } from '../lib/theme';
 import { usePlayerStore } from '../stores/playerStore';
 
 const FETCHING_INFO_MESSAGE = 'Fetching audio info...';
@@ -31,8 +32,8 @@ export default function PlayerScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  thumbnail: { alignSelf: 'stretch', aspectRatio: 16 / 9, borderRadius: 12, marginBottom: 20 },
-  title: { fontSize: 18, fontWeight: '600', textAlign: 'center', marginBottom: 24 },
-  empty: { color: '#777' },
+  container: { flex: 1, backgroundColor: colors.canvas, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  thumbnail: { alignSelf: 'stretch', aspectRatio: 16 / 9, borderRadius: radii.card, marginBottom: 20 },
+  title: { color: colors.textHigh, fontFamily: fonts.headlineSemiBold, fontSize: 18, textAlign: 'center', marginBottom: spacing.lg },
+  empty: { color: colors.textSupporting, fontFamily: fonts.body },
 });

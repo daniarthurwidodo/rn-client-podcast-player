@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createPlayerStore } from './createPlayerStore.ts';
 import type { PlaybackStatus } from './createPlayerStore.ts';
+import type { ProgressByUrl } from '../lib/playbackProgress.ts';
 
 const TRACK_A = { url: 'https://youtu.be/aaaaaaaaaaa', title: 'A', thumbnailUrl: null };
 const TRACK_B = { url: 'https://youtu.be/bbbbbbbbbbb', title: 'B', thumbnailUrl: null };
@@ -11,8 +12,11 @@ function createFakes(
   resolveAudio: (url: string) => Promise<{ url: string }> = async (url) => ({ url: `audio:${url}` }),
   shouldFailEffects = false,
   shouldFailBackground = false,
+  initialProgress: ProgressByUrl = {},
+  shouldFailProgressSave = false,
 ) {
   const calls: string[] = [];
+  const savedProgress: ProgressByUrl[] = [];
   let listener: (status: PlaybackStatus) => void = () => {};
   const player = {
     replace: (uri: string) => calls.push(`replace ${uri}`),
@@ -40,8 +44,15 @@ function createFakes(
       listener = next;
     },
   };
-  const store = createPlayerStore({ resolveAudio, player });
-  return { store, calls, emitStatus: (status: PlaybackStatus) => listener(status) };
+  const progressStorage = {
+    load: async () => initialProgress,
+    save: async (progressByUrl: ProgressByUrl) => {
+      if (shouldFailProgressSave) throw new Error('disk full');
+      savedProgress.push(progressByUrl);
+    },
+  };
+  const store = createPlayerStore({ resolveAudio, player, progressStorage });
+  return { store, calls, savedProgress, emitStatus: (status: PlaybackStatus) => listener(status) };
 }
 
 test('starts idle with no track', () => {
@@ -282,4 +293,120 @@ test('does not ask for the notification permission when the track fails to load'
   await store.getState().loadTrack(TRACK_A);
 
   assert.ok(!calls.includes('notifications'));
+});
+
+const IN_PROGRESS = { [TRACK_A.url]: { positionSeconds: 600, durationSeconds: 1000 } };
+const COMPLETED = { [TRACK_A.url]: { positionSeconds: 995, durationSeconds: 1000 } };
+const statusAt = (currentTime: number, duration = 1000): PlaybackStatus => ({ ...READY_STATUS, currentTime, duration });
+const waitForStorage = () => new Promise((resolve) => setImmediate(resolve));
+
+test('loads saved progress when created', async () => {
+  const { store } = createFakes(undefined, false, false, IN_PROGRESS);
+
+  await waitForStorage();
+
+  assert.deepEqual(store.getState().progressByUrl, IN_PROGRESS);
+});
+
+test('saves the position each time it moves by the save step', async () => {
+  const { store, emitStatus, savedProgress } = createFakes();
+  await store.getState().loadTrack(TRACK_A);
+
+  emitStatus(statusAt(2));
+  emitStatus(statusAt(6));
+  emitStatus(statusAt(8));
+  emitStatus(statusAt(12));
+
+  assert.deepEqual(savedProgress.map((saved) => saved[TRACK_A.url].positionSeconds), [6, 12]);
+});
+
+test('does not save before the duration is known', async () => {
+  const { store, emitStatus, savedProgress } = createFakes();
+  await store.getState().loadTrack(TRACK_A);
+
+  emitStatus(statusAt(30, 0));
+
+  assert.equal(savedProgress.length, 0);
+});
+
+test('saves the exact position when playback is paused', async () => {
+  const { store, emitStatus, savedProgress } = createFakes();
+  await store.getState().loadTrack(TRACK_A);
+  emitStatus(statusAt(6));
+  emitStatus(statusAt(8));
+
+  store.getState().togglePlayback();
+
+  assert.equal(savedProgress.at(-1)?.[TRACK_A.url].positionSeconds, 8);
+});
+
+test('credits the position to the old track when switching tracks', async () => {
+  const { store, emitStatus } = createFakes();
+  await store.getState().loadTrack(TRACK_A);
+  emitStatus(statusAt(6));
+  emitStatus(statusAt(8));
+
+  await store.getState().loadTrack(TRACK_B);
+
+  assert.equal(store.getState().progressByUrl[TRACK_A.url].positionSeconds, 8);
+  assert.equal(store.getState().progressByUrl[TRACK_B.url], undefined);
+});
+
+test('seeks to the saved position once the audio has loaded', async () => {
+  const { store, calls, emitStatus } = createFakes(undefined, false, false, IN_PROGRESS);
+  await waitForStorage();
+  await store.getState().loadTrack(TRACK_A);
+
+  emitStatus({ ...statusAt(0), isLoaded: false });
+  assert.equal(calls.includes('seek 600'), false);
+  emitStatus(statusAt(0));
+
+  assert.equal(calls.includes('seek 600'), true);
+});
+
+test('keeps the saved position while the resume seek has not landed', async () => {
+  const { store, emitStatus, savedProgress } = createFakes(undefined, false, false, IN_PROGRESS);
+  await waitForStorage();
+  await store.getState().loadTrack(TRACK_A);
+
+  emitStatus(statusAt(0));
+  emitStatus(statusAt(1));
+  assert.equal(savedProgress.length, 0);
+
+  emitStatus(statusAt(600));
+  emitStatus(statusAt(606));
+  assert.equal(savedProgress.at(-1)?.[TRACK_A.url].positionSeconds, 606);
+});
+
+test('does not save progress when pausing before the resume seek landed', async () => {
+  const { store, savedProgress } = createFakes(undefined, false, false, IN_PROGRESS);
+  await waitForStorage();
+  await store.getState().loadTrack(TRACK_A);
+  store.setState({ isLoaded: true, currentTime: 0, duration: 1000 });
+
+  store.getState().stop();
+
+  assert.equal(savedProgress.length, 0);
+  assert.equal(store.getState().progressByUrl[TRACK_A.url].positionSeconds, 600);
+});
+
+test('starts a completed track from the beginning', async () => {
+  const { store, calls, emitStatus } = createFakes(undefined, false, false, COMPLETED);
+  await waitForStorage();
+  await store.getState().loadTrack(TRACK_A);
+
+  emitStatus(statusAt(0));
+
+  assert.equal(calls.some((call) => call.startsWith('seek')), false);
+});
+
+test('reports a progress save failure without stopping playback', async () => {
+  const { store, emitStatus } = createFakes(undefined, false, false, {}, true);
+  await store.getState().loadTrack(TRACK_A);
+
+  emitStatus(statusAt(10));
+  await waitForStorage();
+
+  assert.equal(store.getState().phase, 'ready');
+  assert.equal(store.getState().errorMessage, 'Could not save your listening progress');
 });
