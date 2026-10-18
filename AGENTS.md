@@ -21,13 +21,23 @@ npx expo-doctor             # diagnose dependency and config issues
 npx expo install --fix      # fix incompatible package versions
 ```
 
-Run lint and typecheck before declaring any task done.
+Run lint (`npm run lint`), typecheck and tests (`npm test`) before declaring any task done.
 
 ## Navigation & Routing
 
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
+- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a route, `_layout.tsx` files define navigators. Route files only re-export a screen from `src/presentation/screens/`; keep all other code outside `src/app/`.
 - Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
 - Docs: https://docs.expo.dev/router/introduction.md
+
+## Architecture
+
+Code lives under `src/` in three layers that depend **downwards only**: presentation → business → data. `npm run lint` fails on a wrong-way import.
+
+- `src/data/` (and the native modules in `modules/`): storage, device and native access, stored-data parsing, port interfaces. Imports nothing from the layers above.
+- `src/business/` (`logic/`, `player/`, `hooks/`): rules, state and the hooks that combine them. Reaches devices and storage only through `src/data`; no React Native, `expo-*` or UI imports.
+- `src/presentation/` (`screens/`, `components/`, `theme.ts`, `format/`) and `src/app/`: UI only. Uses business hooks; may import only **types** from `src/data/models`.
+- Files that tests reach (business logic, parsers) use relative imports with the `.ts` extension and no React Native imports, because tests run on plain Node (`npm test`).
+- Details and rationale: `documentation/tehnical-solution/three layer architecture.md`.
 
 ## Building with EAS
 

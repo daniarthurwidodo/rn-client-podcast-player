@@ -1,6 +1,6 @@
 # Technical Solution Proposal — Three-Layer Architecture Refactor
 
-Status: **Approved; decisions made (§10). Phase 1 (data layer) built, Phases 2–5 pending.** Everything lives under `src/` (decision 1 changed from my recommendation).
+Status: **Done. All five phases built (§11–§15).** Everything lives under `src/` (decision 1 changed from my recommendation).
 
 ## 1. Goal
 
@@ -241,3 +241,11 @@ How it avoids circular dependencies: slices receive a `StoreAccess` (`getState`/
 Sizes: the longest function inside a module is 19 lines. The three factory wrappers (`createProgressTracker` 60, `createQueueController` 54, `createPlaybackControls` 50 lines of body) still exceed the 40-line guideline because they are containers of small functions; splitting them further would scatter closely related state (for example the resume flags), so I stopped there.
 
 Checks: typecheck, lint and 161 tests pass. Emulator: Play on a genre, jump near the end, the next queue track starts by itself (status handler, queue controller and track loader wired correctly), pause works.
+
+## 15. Phase 5 status — done (documentation)
+
+- `PRD.md`: new "Code architecture" section with the folder/layer/import table; file paths in the feature table and screen headings point at the new locations; state description lists the hooks and the queue state; test count (161) and test command corrected.
+- `AGENTS.md`: routes section now says route files only re-export screens; new "Architecture" section with the layer rules and the Node-test import constraint; the "before done" rule includes `npm test`.
+- This document is the design record; each phase section above lists what was built, what was verified, and what was not.
+
+Final state: typecheck clean, lint clean, 161 tests pass, app verified on the emulator after every phase. Still open from the refactor: the unused effects module and the placeholder Explore/Library/Downloads screens (deliberately out of scope, §9); a real-device check of locked-screen playback from the earlier playlist work.

@@ -1,6 +1,6 @@
 # Podcast Player — Product Requirements Document
 
-> Status: describes the app **as implemented today** (Phases 1–3 of the "Acoustic Ember" redesign, see `DESIGN.md`).
+> Status: describes the app **as implemented today** (Phases 1–3 of the "Acoustic Ember" redesign, see `DESIGN.md`, plus genres, genre playlists, retry/notices, the resolve cache and the three-layer code structure).
 > Items marked **[Proposed]** are not built.
 
 ## 1. Overview
@@ -11,10 +11,10 @@ A mobile audio player for podcasts that live behind web links (currently YouTube
 |---|---|
 | Platform | **Android only** (both native modules are Android/Kotlin; iOS/web would fail on `requireNativeModule`) |
 | Stack | Expo SDK 58, React Native 0.88, Expo Router, Zustand, `expo-audio`, `expo-clipboard`, AsyncStorage |
-| Design | Dark "Acoustic Ember" system (`DESIGN.md`); tokens in `lib/theme.ts`; Plus Jakarta Sans + Manrope fonts |
+| Design | Dark "Acoustic Ember" system (`DESIGN.md`); tokens in `src/presentation/theme.ts`; Plus Jakarta Sans + Manrope fonts |
 | Native modules | `newpipe-resolver` (URL → audio stream + title + thumbnail), `audio-effects` (compressor, vocal-boost EQ) |
 | Backend | None — all resolving happens on-device. |
-| Tests | 163 unit tests (`npm test`): `lib/*.test.ts`, `stores/*.test.ts`. E2E (`e2e/`, Cucumber + Appium): scaffolded, no feature files yet. No component/UI tests. |
+| Tests | 161 unit tests (`npm test` runs `src/**/*.test.ts`): business logic, the player store and the stored-data parsers. E2E (`e2e/`, Cucumber + Appium): scaffolded, no feature files yet. No component/UI tests. |
 
 ## 2. Problem & Goals
 
@@ -36,8 +36,8 @@ Someone who listens to talks, interviews and podcasts published as YouTube video
 
 | ID | Requirement | Status |
 |---|---|---|
-| F1 | Add a URL; only `http(s)` accepted, input trimmed | Done (`lib/parseHttpUrl.ts`) |
-| F2 | On add, resolve title + thumbnail; reject the add if resolve fails | Done (`useSavedUrls.addUrl`) |
+| F1 | Add a URL; only `http(s)` accepted, input trimmed | Done (`src/business/logic/parseHttpUrl.ts`) |
+| F2 | On add, resolve title + thumbnail; reject the add if resolve fails | Done (`useSavedUrls.addUrl`, `src/business/hooks`) |
 | F3 | Adding an already-saved URL is a silent no-op (modal closes) | Done |
 | F4 | Persist the library locally (AsyncStorage `saved-urls`), newest first | Done |
 | F5 | Migrate legacy entries stored as plain strings; backfill their titles on launch | Done |
@@ -53,7 +53,7 @@ Someone who listens to talks, interviews and podcasts published as YouTube video
 | F15 | Mini player at the bottom of every tab; hidden on the Player screen | Done |
 | F16 | **Progress:** save position + duration per URL (`playback-progress`) about every 5 s of playback, and on pause, track switch and stop | Done |
 | F17 | **Resume:** re-opening an in-progress track seeks to the saved position; completed or barely-started tracks start at 0:00 | Done |
-| F18 | **Progress states:** *Unplayed* (< 5 s played), *In progress*, *Completed* (within 10 s of the end) | Done (`lib/playbackProgress.ts`) |
+| F18 | **Progress states:** *Unplayed* (< 5 s played), *In progress*, *Completed* (within 10 s of the end) | Done (`src/business/logic/playbackProgress.ts`) |
 | F19 | **Filter chips** All / Unplayed / In Progress / Completed with counts | Done |
 | F20 | **Paste bar:** read the clipboard and open the Add modal prefilled; if no valid link, open empty with a message | Done — user still confirms with Add |
 | F21 | **Bottom tabs** Home / Explore / Library / Downloads | Removed — the tab bar is hidden; the three placeholder screens still exist but are unreachable |
@@ -78,8 +78,8 @@ Someone who listens to talks, interviews and podcasts published as YouTube video
 ## 5. Information Architecture
 
 ```
-Root Stack (app/_layout.tsx)
-├── (tabs)  Tabs with the tab bar replaced by the mini player (app/(tabs)/_layout.tsx)
+Root Stack (src/app/_layout.tsx)
+├── (tabs)  Tabs with the tab bar replaced by the mini player (src/app/(tabs)/_layout.tsx)
 │   ├── index      Home — "Podcasts"
 │   ├── explore    Coming soon
 │   ├── library    Coming soon
@@ -88,12 +88,25 @@ Root Stack (app/_layout.tsx)
 └── player  Player (pushed on top of the tabs, no tab bar)
 ```
 
-State: `usePlayerStore` (Zustand; phases `idle → resolving → ready | error`; also holds `progressByUrl`, `enabledEffects`, `playbackRate`), `useSavedUrls` (library), `useAddUrlModal` (modal form + clipboard).
+State: `usePlayerStore` (Zustand; phases `idle → resolving → ready | error`; also holds `progressByUrl`, `enabledEffects`, `playbackRate`, the playlist `queue`, `repeatMode`, `isShuffled`, and the expiring `notice`), `useSavedUrls` (library), `useAddUrlModal` (modal form + clipboard), `useLibraryView` (genre and progress filters), `useGenreEditor`, and `useHomeScreen`, which combines them for the Home screen.
 Storage keys: `saved-urls` (items incl. `genres`), `playback-progress`, `resolved-audio`.
+
+### Code architecture
+
+Everything lives under `src/`, in three layers that depend downwards only: **presentation → business → data**. Lint enforces it (`eslint.config.js`).
+
+| Folder | Layer | Holds | May import |
+|---|---|---|---|
+| `src/data/` (+ `modules/`) | Data | AsyncStorage repositories, parsing of stored data, the `expo-audio` adapter, clipboard, port interfaces, the native modules | nothing above it |
+| `src/business/` | Business (incl. hooks) | `logic/` (genres, queue, progress rules, cache policy), `player/` (the Zustand store, split per concern), `hooks/` | `src/data`, React, Zustand; no UI or device packages |
+| `src/presentation/` | Presentation | `screens/`, `components/`, `theme.ts`, `format/` | `src/business`, UI libraries; from `src/data` only types |
+| `src/app/` | Presentation (routes) | Expo Router files: one-line re-exports of screens plus `_layout`s | same as presentation |
+
+Design record: `documentation/tehnical-solution/three layer architecture.md`.
 
 ## 6. Screen Documentation
 
-### 6.1 Home — "Podcasts" (`app/(tabs)/index.tsx`)
+### 6.1 Home — "Podcasts" (`src/presentation/screens/HomeScreen.tsx`, routed by `src/app/(tabs)/index.tsx`)
 
 **Purpose:** the library; entry point for adding, filtering and playing.
 
@@ -112,7 +125,7 @@ Storage keys: `saved-urls` (items incl. `genres`), `playback-progress`, `resolve
 
 **Add URL modal** (`AddUrlModal`) — "Paste URL"; autofocused input; Cancel / Add. States: submitting ("Checking URL…"), invalid ("Enter a valid http(s) URL"), resolve failed ("Could not load this URL. Check the link and your connection."), no clipboard link ("No link found on the clipboard. Paste one below."). Typing clears the error; Back closes.
 
-### 6.2 Player (`app/player.tsx`)
+### 6.2 Player (`src/presentation/screens/PlayerScreen.tsx`, routed by `src/app/player.tsx`)
 
 **Purpose:** full playback controls. Artwork and title in the upper area; controls in the lower part of the screen (thumb zone).
 
@@ -126,7 +139,7 @@ Storage keys: `saved-urls` (items incl. `genres`), `playback-progress`, `resolve
 
 **`AudioPlayer`:** `Scrubber` (6 px track, amber fill, 16 px thumb growing to 22 px on touch; tap or drag; time label follows the finger) → elapsed / "Buffering…" (only while buffering) / total → transport row: ⟲15, Play/Pause (64 px, amber glow while playing), ⟳30 → speed chip (amber when ≠ 1×). A failed seek or progress save shows an inline notice that clears after 5 s, on tap, when the same action next succeeds, or on the next track load.
 
-### 6.3 Mini Player (`components/MiniPlayer.tsx`)
+### 6.3 Mini Player (`src/presentation/components/MiniPlayer.tsx`)
 
 Floating pill at the bottom of the tab screens: 40 px thumbnail, title, subtitle ("Fetching audio info…" / error / "Buffering…" / "m:ss / m:ss"), amber play/pause when ready, 2 px progress line on the bottom rim. Tapping opens the Player.
 
@@ -162,7 +175,7 @@ Title and artwork are published via `setActiveForLockScreen`; cleared on `stop()
 | 11 | Playback speed | Done (F24) |
 | 12 | Effects as switches with help text | Done; persistence across launches open |
 | 13 | Player layout / thumb-zone controls | Done |
-| 14 | Theme tokens | Done (`lib/theme.ts`) |
+| 14 | Theme tokens | Done (`src/presentation/theme.ts`) |
 | 15 | Mini-player slide-in animation | Open |
 | 16 | Dark mode | Done (dark only) |
 | 17 | Accessibility roles | Partial — switches and buttons labeled; scrubber has no slider role/actions |
