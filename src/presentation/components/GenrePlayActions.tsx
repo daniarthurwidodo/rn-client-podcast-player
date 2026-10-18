@@ -1,6 +1,6 @@
 import { Play, Shuffle } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radii, spacing } from '../lib/theme';
+import { colors, fonts, radii, spacing } from '../theme';
 
 const ICON_SIZE = 18;
 

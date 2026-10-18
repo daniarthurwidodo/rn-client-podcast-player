@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text } from 'react-native';
-import { colors, fonts, radii } from '../lib/theme';
+import { colors, fonts, radii } from '../theme';
 
 const BUTTON_SIZE = 48;
 const ICON_SIZE = 28;

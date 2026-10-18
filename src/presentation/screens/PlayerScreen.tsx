@@ -3,9 +3,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { PlaylistPanel } from '../components/PlaylistPanel';
 import { ErrorMessage, LoadingMessage } from '../components/StatusMessage';
-import { getHostLabel } from '../lib/hostLabel';
-import { colors, fonts, radii, spacing } from '../lib/theme';
-import { usePlayerStore } from '../src/business/player/playerStore';
+import { getHostLabel } from '../format/hostLabel';
+import { colors, fonts, radii, spacing } from '../theme';
+import { usePlayerStore } from '../../business/player/playerStore';
 
 const FETCHING_INFO_MESSAGE = 'Fetching audio info...';
 const NOTHING_PLAYING_MESSAGE = 'Nothing is playing';

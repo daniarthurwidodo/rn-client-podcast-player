@@ -1,11 +1,11 @@
 import { CircleCheck, X } from 'lucide-react-native';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { formatDuration } from '../lib/formatDuration';
-import { getHostLabel } from '../lib/hostLabel';
-import { getProgressFraction, getProgressState } from '../src/business/logic/playbackProgress';
-import type { PlaybackProgress, SavedUrl } from '../src/data/models';
-import type { ProgressState } from '../src/business/logic/playbackProgress';
-import { colors, fonts, radii, spacing } from '../lib/theme';
+import { formatDuration } from '../format/formatDuration';
+import { getHostLabel } from '../format/hostLabel';
+import { getProgressFraction, getProgressState } from '../../business/logic/playbackProgress';
+import type { PlaybackProgress, SavedUrl } from '../../data/models';
+import type { ProgressState } from '../../business/logic/playbackProgress';
+import { colors, fonts, radii, spacing } from '../theme';
 
 const DELETE_ICON_SIZE = 20;
 const COMPLETED_ICON_SIZE = 32;

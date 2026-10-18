@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, spacing } from '../lib/theme';
+import { colors, fonts, spacing } from '../theme';
 
 const COMING_SOON_MESSAGE = 'Coming soon';
 

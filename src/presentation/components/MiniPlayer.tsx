@@ -1,9 +1,9 @@
 import { useRouter } from 'expo-router';
 import { Pause, Play } from 'lucide-react-native';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { formatTime } from '../lib/formatTime';
-import { colors, fonts, radii, spacing } from '../lib/theme';
-import { usePlayerStore } from '../src/business/player/playerStore';
+import { formatTime } from '../format/formatTime';
+import { colors, fonts, radii, spacing } from '../theme';
+import { usePlayerStore } from '../../business/player/playerStore';
 
 const PLAYER_PATH = '/player';
 const FETCHING_INFO_MESSAGE = 'Fetching audio info...';

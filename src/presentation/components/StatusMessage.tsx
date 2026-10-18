@@ -1,5 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radii, spacing } from '../lib/theme';
+import { colors, fonts, radii, spacing } from '../theme';
 
 const RETRY_LABEL = 'Retry';
 

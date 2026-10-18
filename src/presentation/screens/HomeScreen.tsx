@@ -1,16 +1,16 @@
 import { useRouter } from 'expo-router';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AddUrlModal } from '../../components/AddUrlModal';
-import { FilterChips } from '../../components/FilterChips';
-import { GenreChips } from '../../components/GenreChips';
-import { GenrePlayActions } from '../../components/GenrePlayActions';
-import { GenreSheet } from '../../components/GenreSheet';
-import { PasteBar } from '../../components/PasteBar';
-import { SavedUrlItem } from '../../components/SavedUrlItem';
-import { useHomeScreen } from '../../src/business/hooks/useHomeScreen';
-import type { SavedUrl } from '../../src/data/models';
-import { colors, fonts, radii, spacing } from '../../lib/theme';
+import { AddUrlModal } from '../components/AddUrlModal';
+import { FilterChips } from '../components/FilterChips';
+import { GenreChips } from '../components/GenreChips';
+import { GenrePlayActions } from '../components/GenrePlayActions';
+import { GenreSheet } from '../components/GenreSheet';
+import { PasteBar } from '../components/PasteBar';
+import { SavedUrlItem } from '../components/SavedUrlItem';
+import { useHomeScreen } from '../../business/hooks/useHomeScreen';
+import type { SavedUrl } from '../../data/models';
+import { colors, fonts, radii, spacing } from '../theme';
 
 const PLAYER_PATH = '/player';
 const SCREEN_TITLE = 'Podcasts';

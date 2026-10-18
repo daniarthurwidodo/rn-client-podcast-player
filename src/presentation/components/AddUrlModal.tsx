@@ -1,5 +1,5 @@
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { colors, fonts, radii, spacing } from '../lib/theme';
+import { colors, fonts, radii, spacing } from '../theme';
 
 const CHECKING_URL_MESSAGE = 'Checking URL...';
 

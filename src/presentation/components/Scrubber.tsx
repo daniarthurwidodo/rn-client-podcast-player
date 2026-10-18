@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { GestureResponderEvent } from 'react-native';
 import { StyleSheet, View } from 'react-native';
-import { colors, radii } from '../lib/theme';
+import { colors, radii } from '../theme';
 
 const TRACK_HEIGHT = 6;
 const TOUCH_HEIGHT = 40;

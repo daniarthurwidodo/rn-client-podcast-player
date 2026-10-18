@@ -3,11 +3,12 @@ const { defineConfig } = require('eslint/config');
 const expoConfig = require('eslint-config-expo/flat');
 
 // Layers depend downwards only: presentation -> business -> data. See documentation/tehnical-solution/three layer architecture.md.
-// `lib/`, `components/` and `app/` still hold presentation code until the presentation phase moves it under src/presentation.
-const PRESENTATION_PATTERNS = ['**/lib/**', '**/components/**', '**/app/**', '**/presentation/**'];
+const PRESENTATION_PATTERNS = ['**/presentation/**', '**/src/app/**'];
 const BUSINESS_PATTERNS = ['**/business/**'];
 
 const DEVICE_PACKAGES = ['react-native', 'react-native-*', 'expo-*', 'lucide-react-native', '@react-native-async-storage/*'];
+// What presentation may not reach for itself; it uses `expo-router`, `expo-font`, `expo-status-bar`, `expo-splash-screen` and React Native.
+const STORAGE_AND_DEVICE_PACKAGES = ['@react-native-async-storage/*', 'expo-audio', 'expo-clipboard', 'expo-notifications'];
 
 module.exports = defineConfig([
   expoConfig,
@@ -36,6 +37,21 @@ module.exports = defineConfig([
           patterns: [
             { group: PRESENTATION_PATTERNS, message: 'The business layer must not import from the presentation layer.' },
             { group: DEVICE_PACKAGES, message: 'The business layer reaches devices and storage through src/data, not directly.' },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/presentation/**/*.{ts,tsx}', 'src/app/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            // Types of stored data may be imported for rendering; values (repositories, adapters, native modules) may not.
+            { group: ['**/data/**', '**/modules/**'], allowTypeImports: true, message: 'The presentation layer reaches data through the business layer; only types from data/models may be imported.' },
+            { group: STORAGE_AND_DEVICE_PACKAGES, message: 'The presentation layer does not use storage or device packages directly; go through a business hook.' },
           ],
         },
       ],

@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
-import { MiniPlayer } from '../../components/MiniPlayer';
-import { colors } from '../../lib/theme';
+import { MiniPlayer } from '../../presentation/components/MiniPlayer';
+import { colors } from '../../presentation/theme';
 
 export default function TabsLayout() {
   return (

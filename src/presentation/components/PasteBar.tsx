@@ -1,6 +1,6 @@
 import { ClipboardPaste, Link2 } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radii, spacing } from '../lib/theme';
+import { colors, fonts, radii, spacing } from '../theme';
 
 const PLACEHOLDER = 'Paste a YouTube or web audio link…';
 const BUTTON_LABEL = 'Paste';

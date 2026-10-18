@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { isSameGenre, splitVisibleGenres } from '../src/business/logic/genres';
-import type { GenreCount } from '../src/business/logic/genres';
-import { spacing } from '../lib/theme';
+import { isSameGenre, splitVisibleGenres } from '../../business/logic/genres';
+import type { GenreCount } from '../../business/logic/genres';
+import { spacing } from '../theme';
 import { Chip } from './Chip';
 
 const SHOW_MORE_LABEL = 'Show more';

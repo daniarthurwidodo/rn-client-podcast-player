@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
-import { colors, fonts, radii, spacing } from '../lib/theme';
+import { colors, fonts, radii, spacing } from '../theme';
 
 const CHIP_HEIGHT = 32;
 const CHIP_HIT_SLOP = 8;

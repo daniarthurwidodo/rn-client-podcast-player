@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet } from 'react-native';
-import { LIBRARY_FILTERS } from '../src/business/logic/playbackProgress';
-import type { LibraryFilter } from '../src/business/logic/playbackProgress';
-import { spacing } from '../lib/theme';
+import { LIBRARY_FILTERS } from '../../business/logic/playbackProgress';
+import type { LibraryFilter } from '../../business/logic/playbackProgress';
+import { spacing } from '../theme';
 import { Chip } from './Chip';
 
 const FILTER_LABELS: Record<LibraryFilter, string> = {
