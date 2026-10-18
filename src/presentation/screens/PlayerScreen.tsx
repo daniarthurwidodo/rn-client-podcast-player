@@ -41,9 +41,14 @@ export default function PlayerScreen() {
         <Text style={styles.subtitle} numberOfLines={1}>{[getHostLabel(track.url), ...track.genres].join(SUBTITLE_SEPARATOR)}</Text>
       </View>
       <View style={styles.controls}>
-        {phase === 'resolving' ? <LoadingMessage message={FETCHING_INFO_MESSAGE} /> : null}
         {phase === 'error' && errorMessage ? <ErrorMessage message={errorMessage} onRetry={() => loadTrack(track)} /> : null}
-        {phase === 'ready' ? <AudioPlayer /> : null}
+        {/* Stays mounted while resolving so the scrubber is not rebuilt on every track change; the loading message covers it. */}
+        {phase === 'resolving' || phase === 'ready' ? <AudioPlayer /> : null}
+        {phase === 'resolving' ? (
+          <View style={styles.loadingOverlay}>
+            <LoadingMessage message={FETCHING_INFO_MESSAGE} />
+          </View>
+        ) : null}
       </View>
       <PlaylistPanel />
     </View>
@@ -60,4 +65,5 @@ const styles = StyleSheet.create({
   title: { color: colors.textHigh, fontFamily: fonts.headlineBold, fontSize: 22, lineHeight: 28, letterSpacing: -0.3, marginTop: spacing.md },
   subtitle: { color: colors.textSupporting, fontFamily: fonts.body, fontSize: 14, marginTop: spacing.xs },
   controls: { minHeight: CONTROLS_MIN_HEIGHT, marginTop: spacing.md },
+  loadingOverlay: { ...StyleSheet.absoluteFill, backgroundColor: colors.canvas },
 });
