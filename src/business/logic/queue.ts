@@ -1,4 +1,5 @@
 import type { SavedUrl } from '../../data/models';
+import { isSameGenre } from './genres.ts';
 
 export type RepeatMode = 'off' | 'all' | 'one';
 
@@ -28,6 +29,13 @@ export function shuffleItems<Item>(items: Item[], random: RandomSource): Item[] 
 
 export function buildQueue(items: SavedUrl[], shouldShuffle: boolean, random: RandomSource): SavedUrl[] {
   return shouldShuffle ? shuffleItems(items, random) : [...items];
+}
+
+// The tapped track first, then every other item that shares at least one genre with it, in library order.
+export function buildRelatedQueue(items: SavedUrl[], track: SavedUrl): SavedUrl[] {
+  const isRelated = (item: SavedUrl) =>
+    item.url !== track.url && item.genres.some((genre) => track.genres.some((trackGenre) => isSameGenre(genre, trackGenre)));
+  return [track, ...items.filter(isRelated)];
 }
 
 // A one-track queue repeating all is the same as repeating that track, and the player's own loop does it without reloading.

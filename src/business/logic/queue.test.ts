@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildQueue, cycleRepeatMode, getNextStep, getPreviousStep, isLoopingTrack, reorderQueue, shuffleItems } from './queue.ts';
+import { buildQueue, buildRelatedQueue, cycleRepeatMode, getNextStep, getPreviousStep, isLoopingTrack, reorderQueue, shuffleItems } from './queue.ts';
 
 const track = (name: string) => ({ url: `https://youtu.be/${name}`, title: name, thumbnailUrl: null, genres: [] });
 const [A, B, C] = [track('a'), track('b'), track('c')];
@@ -143,4 +143,42 @@ test('reorderQueue unshuffled restores library order around the current track', 
 test('reorderQueue still works when the current track is not in the source', () => {
   assert.equal(reorderQueue([A, B], C, false, neverShuffle).index, 0);
   assert.deepEqual(urls(reorderQueue([A, B], C, true, alwaysZero).tracks), urls([C, B, A]));
+});
+
+const tagged = (name: string, genres: string[]) => ({ ...track(name), genres });
+
+test('a track without genres is queued alone', () => {
+  const lone = tagged('lone', []);
+
+  assert.deepEqual(urls(buildRelatedQueue([lone, tagged('x', ['News'])], lone)), urls([lone]));
+});
+
+test('related items follow the track in library order', () => {
+  const [first, second, third] = [tagged('a', ['News']), tagged('b', ['News']), tagged('c', ['News'])];
+
+  assert.deepEqual(urls(buildRelatedQueue([first, second, third], first)), urls([first, second, third]));
+});
+
+test('the tapped track comes first even when it is not first in the library', () => {
+  const [first, second, third] = [tagged('a', ['News']), tagged('b', ['News']), tagged('c', ['News'])];
+
+  assert.deepEqual(urls(buildRelatedQueue([first, second, third], third)), urls([third, first, second]));
+});
+
+test('genres match ignoring case and any one shared genre is enough', () => {
+  const tapped = tagged('t', ['Talk', 'News']);
+  const shares = tagged('s', ['NEWS', 'Other']);
+  const unrelated = tagged('u', ['Cooking']);
+  const untagged = tagged('n', []);
+
+  assert.deepEqual(urls(buildRelatedQueue([unrelated, shares, untagged, tapped], tapped)), urls([tapped, shares]));
+});
+
+test('the tapped track is not duplicated and the input is not changed', () => {
+  const tapped = tagged('t', ['News']);
+  const items = [tapped, tagged('b', ['News'])];
+  const copy = [...items];
+
+  assert.equal(buildRelatedQueue(items, tapped).filter((item) => item.url === tapped.url).length, 1);
+  assert.deepEqual(items, copy);
 });
