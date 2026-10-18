@@ -4,9 +4,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddUrlModal } from '../components/AddUrlModal';
 import { FilterChips } from '../components/FilterChips';
 import { GenreChips } from '../components/GenreChips';
-import { GenrePlayActions } from '../components/GenrePlayActions';
 import { GenreSheet } from '../components/GenreSheet';
 import { PasteBar } from '../components/PasteBar';
+import { SearchBar } from '../components/SearchBar';
 import { SavedUrlItem } from '../components/SavedUrlItem';
 import { useHomeScreen } from '../../business/hooks/useHomeScreen';
 import type { SavedUrl } from '../../data/models';
@@ -17,6 +17,11 @@ const SCREEN_TITLE = 'Podcasts';
 const EMPTY_LIBRARY_MESSAGE = 'Tap Paste URL to add a link';
 const EMPTY_FILTER_MESSAGE = 'Nothing here yet';
 const LIST_BOTTOM_CLEARANCE = 112;
+
+function getEmptyMessage(isLibraryEmpty: boolean, query: string): string {
+  if (isLibraryEmpty) return EMPTY_LIBRARY_MESSAGE;
+  return query.trim() === '' ? EMPTY_FILTER_MESSAGE : `No matches for "${query.trim()}"`;
+}
 
 function ItemSeparator() {
   return <View style={styles.separator} />;
@@ -33,11 +38,6 @@ export default function HomeScreen() {
     router.push(PLAYER_PATH);
   };
 
-  const playGenre = (shuffle: boolean) => {
-    home.playVisibleAsQueue(shuffle);
-    router.push(PLAYER_PATH);
-  };
-
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
@@ -47,22 +47,21 @@ export default function HomeScreen() {
         </View>
       </View>
       <PasteBar onPaste={addUrl.openFromClipboard} />
+      {home.isLibraryEmpty ? null : <SearchBar query={view.query} onChangeQuery={view.setQuery} />}
       {home.isLibraryEmpty ? null : (
         <FilterChips counts={view.progressCounts} selected={view.filter} onSelect={view.setFilter} />
       )}
       {view.genreCounts.length === 0 ? null : (
         <GenreChips genres={view.genreCounts} selected={view.selectedGenre} onSelect={view.toggleGenre} />
       )}
-      {view.selectedGenre === null || view.visibleUrls.length === 0 ? null : (
-        <GenrePlayActions onPlay={() => playGenre(false)} onShuffle={() => playGenre(true)} />
-      )}
       {home.errorMessage ? <Text style={styles.error}>{home.errorMessage}</Text> : null}
       <FlatList
         data={view.visibleUrls}
         keyExtractor={(item) => item.url}
         contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
         ItemSeparatorComponent={ItemSeparator}
-        ListEmptyComponent={<Text style={styles.empty}>{home.isLibraryEmpty ? EMPTY_LIBRARY_MESSAGE : EMPTY_FILTER_MESSAGE}</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>{getEmptyMessage(home.isLibraryEmpty, view.query)}</Text>}
         renderItem={({ item }) => (
           <SavedUrlItem
             item={item}

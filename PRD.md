@@ -14,7 +14,7 @@ A mobile audio player for podcasts that live behind web links (currently YouTube
 | Design | Dark "Acoustic Ember" system (`DESIGN.md`); tokens in `src/presentation/theme.ts`; Plus Jakarta Sans + Manrope fonts |
 | Native modules | `newpipe-resolver` (URL → audio stream + title + thumbnail), `audio-effects` (compressor, vocal-boost EQ) |
 | Backend | None — all resolving happens on-device. |
-| Tests | 161 unit tests (`npm test` runs `src/**/*.test.ts`): business logic, the player store and the stored-data parsers. E2E (`e2e/`, Cucumber + Appium): scaffolded, no feature files yet. No component/UI tests. |
+| Tests | 172 unit tests (`npm test` runs `src/**/*.test.ts`): business logic, the player store and the stored-data parsers. E2E (`e2e/`, Cucumber + Appium): scaffolded, no feature files yet. No component/UI tests. |
 
 ## 2. Problem & Goals
 
@@ -61,7 +61,8 @@ Someone who listens to talks, interviews and podcasts published as YouTube video
 | F23 | **Skip** back 15 s / forward 30 s, clamped to the track | Done (not on lock screen) |
 | F25 | **Genres:** free-text tags on a saved item, any number, case-insensitive, stored on the item (`genres`); long-press a card or tap its badges / "+ Genre" to edit | Done |
 | F26 | **Genre filter:** chip row on Home (first 3, then Show more / Show less), combined with the progress filter | Done |
-| F27 | **Genre playlist:** Play / Shuffle on Home plays the genres currently shown as a queue; auto-advances when a track ends; picking another track by hand ends it | Done |
+| F27 | **Genre playlist:** the player store can play a list as a queue and auto-advances when a track ends; picking another track by hand ends it | Store done; **no Home entry point** since the Play / Shuffle buttons were removed (the `playQueue` action is unused by the UI) |
+| F32 | **Search:** a field under the paste bar filters the Home list by title, genre or URL (case- and accent-insensitive, every word must match); applied after the genre and progress filters; chip counts ignore it | Done (`src/business/logic/search.ts`) |
 | F28 | **Player queue controls:** previous / next, shuffle toggle (mid-playback), repeat off → all → one (one uses the player's native loop) | Done |
 | F29 | **Playlist panel** on the Player: queued tracks, current highlighted, tap to jump, scrolls | Done |
 | F30 | **Resolved-audio cache:** stream URLs cached 5 h (measured URL life 6 h); Retry bypasses it; the next queue track is resolved ahead of time | Done |
@@ -118,7 +119,8 @@ Design record: `documentation/tehnical-solution/three layer architecture.md`.
 | Load/save error banner | red text | `Could not load your saved URLs` / `Could not save your URL`; clears after 5 s, or when the next save succeeds |
 | List | `FlatList` of `SavedUrlItem` | See card below |
 | Empty states | text | Empty library: "Tap Paste URL to add a link"; empty filter: "Nothing here yet" |
-| Genre chips | `GenreChips` | Genres with counts, first 3 then Show more; selecting one shows Play / Shuffle (`GenrePlayActions`) for the list shown |
+| Search | `SearchBar` | Text field with a clear button, hidden while the library is empty; "No matches for …" when nothing matches |
+| Genre chips | `GenreChips` | Genres with counts, first 3 then Show more; selecting one filters the list |
 | Genre sheet | `GenreSheet` | Opened by long-press or the card's genre badges / "+ Genre"; add by typing, remove by tapping, suggestions from existing genres |
 
 **Card (`SavedUrlItem`):** 120×96 thumbnail (placeholder if none) with a duration badge once known and a check overlay when completed; indigo host badge (e.g. `youtube.com`); title (3 lines); status line — *Now playing* (amber, plus amber border) / *Unplayed* (green) / *Xm played • N%* (amber) / *Completed* (muted, card dimmed); 4 px progress bar under in-progress and completed cards; ✕ delete (immediate).

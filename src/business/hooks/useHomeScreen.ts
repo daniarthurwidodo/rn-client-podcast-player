@@ -12,7 +12,6 @@ export function useHomeScreen() {
   const playingUrl = usePlayerStore((state) => state.track?.url);
   const progressByUrl = usePlayerStore((state) => state.progressByUrl);
   const loadTrack = usePlayerStore((state) => state.loadTrack);
-  const playQueue = usePlayerStore((state) => state.playQueue);
   const stopPlayback = usePlayerStore((state) => state.stop);
   const view = useLibraryView(library.savedUrls, progressByUrl);
   const genreEditor = useGenreEditor(library.savedUrls);
@@ -37,7 +36,6 @@ export function useHomeScreen() {
     genreEditor,
     genreSuggestions,
     playTrack: loadTrack,
-    playVisibleAsQueue: (shuffle: boolean) => playQueue(view.visibleUrls, { shuffle }),
     deleteUrl,
     addEditingGenre: (genre: string) => editingUrl && library.addItemGenre(editingUrl, genre),
     removeEditingGenre: (genre: string) => editingUrl && library.removeItemGenre(editingUrl, genre),

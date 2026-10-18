@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { collectGenres, filterByGenre, isSameGenre, resolveSelectedGenre } from '../logic/genres';
 import { countByFilter, filterByProgress } from '../logic/playbackProgress';
+import { searchItems } from '../logic/search';
 import type { ProgressByUrl, SavedUrl } from '../../data/models';
 import type { LibraryFilter } from '../logic/playbackProgress';
 
-// The genre and progress filters apply together; the progress counts describe the genre-filtered list.
+// The genre and progress filters apply together, then the search text narrows the result; the progress counts
+// describe the genre-filtered list and ignore the search text.
 export function useLibraryView(savedUrls: SavedUrl[], progressByUrl: ProgressByUrl) {
   const [filter, setFilter] = useState<LibraryFilter>('all');
   const [pickedGenre, setPickedGenre] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
 
   const genreCounts = collectGenres(savedUrls);
   const selectedGenre = resolveSelectedGenre(genreCounts, pickedGenre);
@@ -20,10 +23,12 @@ export function useLibraryView(savedUrls: SavedUrl[], progressByUrl: ProgressByU
   return {
     filter,
     setFilter,
+    query,
+    setQuery,
     genreCounts,
     selectedGenre,
     toggleGenre,
     progressCounts: countByFilter(genreItems, progressByUrl),
-    visibleUrls: filterByProgress(genreItems, progressByUrl, filter),
+    visibleUrls: searchItems(filterByProgress(genreItems, progressByUrl, filter), query),
   };
 }
