@@ -3,7 +3,7 @@ const { defineConfig } = require('eslint/config');
 const expoConfig = require('eslint-config-expo/flat');
 
 // Layers depend downwards only: presentation -> business -> data. See documentation/tehnical-solution/three layer architecture.md.
-const PRESENTATION_PATTERNS = ['**/presentation/**', '**/src/app/**'];
+const PRESENTATION_PATTERNS = ['**/presentation/**', '**/app/**'];
 const BUSINESS_PATTERNS = ['**/business/**'];
 
 const DEVICE_PACKAGES = ['react-native', 'react-native-*', 'expo-*', 'lucide-react-native', '@react-native-async-storage/*'];

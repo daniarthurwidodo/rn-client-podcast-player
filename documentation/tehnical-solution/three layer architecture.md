@@ -202,3 +202,20 @@ Also done: the `react-hooks/exhaustive-deps` warning in `useSavedUrls` is silenc
 Checks: typecheck clean, lint clean (0 warnings), 161 tests pass. Emulator: app boots; add genre and remove genre through the new hook callbacks; selecting the genre and pressing Play opens the Player with the playlist panel, queue controls and the current track's genres. Not exercised on the device: deleting an item through the new `deleteUrl` (it deletes data; the logic is unchanged and typechecked).
 
 Still in the old folders (moved in Phase 3): `lib/` (`theme`, `formatTime`, `formatDuration`, `hostLabel` + their tests), `components/`, `app/`. `hooks/` and `stores/` are gone.
+
+## 13. Phase 3 status — done (presentation layer)
+
+Moved with `git mv`; imports rewritten by the same resolver script:
+- `src/presentation/components/`: all reusable components (`Chip`, `FilterChips`, `GenreChips`, `GenreSheet`, `SavedUrlItem`, `AudioPlayer`, `PlaylistPanel`, `Scrubber`, `MiniPlayer`, …).
+- `src/presentation/screens/`: `HomeScreen` (from `app/(tabs)/index.tsx`), `PlayerScreen` (from `app/player.tsx`), `ComingSoonScreen`.
+- `src/presentation/theme.ts` and `src/presentation/format/` (`formatTime`, `formatDuration`, `hostLabel` + tests).
+- `src/app/`: `_layout.tsx`, `(tabs)/_layout.tsx` unchanged in role; `(tabs)/index.tsx` and `player.tsx` are now one-line re-exports of the screens. `explore`, `library` and `downloads` stay as 5-line route files that render `ComingSoonScreen` with a title (they pass a prop, so a bare re-export does not fit).
+- The root folders `app/`, `components/`, `lib/`, `hooks/`, `stores/` no longer exist.
+
+Lint, `src/presentation/**` and `src/app/**`: value imports from `data/` and `modules/` are errors (type-only imports are allowed), and so are the storage/device packages (`@react-native-async-storage/*`, `expo-audio`, `expo-clipboard`, `expo-notifications`). A probe file with one type import and three violations produced exactly three errors, and the type import was accepted. Two pattern bugs were found and fixed while proving the rules: import specifiers are relative, so patterns cannot contain `src/` (the data and app patterns now use `**/data/**` and `**/app/**`).
+
+Scripts: `npm test` = `node --test "src/**/*.test.ts"`, `npm run lint` = `expo lint src`.
+
+Checks: typecheck clean, lint clean, 161 tests pass. Emulator, after restarting Metro with a cleared cache (Expo Router resolves its route root from the folder layout): Expo Router found `src/app` (3405 modules bundled), Home renders, a track opens in the Player with queue controls and the playlist panel, the mini player shows on Home, genre chips and Play/Shuffle work.
+
+Left for Phase 5: update `PRD.md` and `AGENTS.md` for the new layout. Phase 4 (optional split of `createPlayerStore.ts`) is next.
