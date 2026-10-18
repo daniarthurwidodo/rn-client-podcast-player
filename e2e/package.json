@@ -1,0 +1,17 @@
+{
+  "name": "podcast-player-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "APPIUM_HOME=./.appium appium driver install uiautomator2",
+    "test": "cucumber-js"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^12.0.0",
+    "@types/node": "^24.0.0",
+    "appium": "^3.0.0",
+    "typescript": "~6.0.3",
+    "webdriverio": "^9.0.0"
+  }
+}

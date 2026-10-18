@@ -39,3 +39,20 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Android/Gradle build output (native modules under modules/*/android)
+build/
+.gradle/
+.cxx/
+local.properties
+*.apk
+*.aab
+
+# env files
+.env
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# e2e reports
+e2e/reports/
