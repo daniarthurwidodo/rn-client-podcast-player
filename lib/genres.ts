@@ -1,4 +1,4 @@
-import type { SavedUrl } from './savedUrl';
+import type { SavedUrl } from '../src/data/models';
 
 export const VISIBLE_GENRE_COUNT = 3;
 
@@ -23,13 +23,6 @@ export function addGenre(genres: string[], raw: string): string[] {
 
 export function removeGenre(genres: string[], genre: string): string[] {
   return genres.filter((existing) => !isSameGenre(existing, genre));
-}
-
-// Stored data is untrusted: keep only strings, normalised and without duplicates.
-export function parseGenres(raw: unknown): string[] {
-  if (!Array.isArray(raw)) return [];
-  const names = raw.filter((value): value is string => typeof value === 'string');
-  return names.reduce<string[]>(addGenre, []);
 }
 
 // A genre exists while at least one item has it; the first spelling seen is the one shown.

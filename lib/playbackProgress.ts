@@ -1,8 +1,4 @@
-import type { SavedUrl } from './savedUrl';
-
-export type PlaybackProgress = { positionSeconds: number; durationSeconds: number };
-
-export type ProgressByUrl = Record<string, PlaybackProgress>;
+import type { PlaybackProgress, ProgressByUrl, SavedUrl } from '../src/data/models';
 
 export type ProgressState = 'unplayed' | 'inProgress' | 'completed';
 
@@ -41,16 +37,4 @@ export function countByFilter(items: SavedUrl[], progressByUrl: ProgressByUrl): 
     inProgress: filterByProgress(items, progressByUrl, 'inProgress').length,
     completed: filterByProgress(items, progressByUrl, 'completed').length,
   };
-}
-
-function isProgress(value: unknown): value is PlaybackProgress {
-  if (typeof value !== 'object' || value === null) return false;
-  const { positionSeconds, durationSeconds } = value as Record<string, unknown>;
-  return Number.isFinite(positionSeconds) && Number.isFinite(durationSeconds);
-}
-
-export function parseProgressByUrl(raw: unknown): ProgressByUrl {
-  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return {};
-  const entries = Object.entries(raw).filter(([, value]) => isProgress(value));
-  return Object.fromEntries(entries);
 }

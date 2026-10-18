@@ -1,7 +1,7 @@
 import { Volume2 } from 'lucide-react-native';
 import { useEffect, useRef } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import type { SavedUrl } from '../lib/savedUrl';
+import type { SavedUrl } from '../src/data/models';
 import { colors, fonts, radii, spacing } from '../lib/theme';
 import { usePlayerStore } from '../stores/playerStore';
 

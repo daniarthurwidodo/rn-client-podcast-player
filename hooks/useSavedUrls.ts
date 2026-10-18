@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import type { SavedUrl } from '../src/data/models';
+import { loadSavedUrls, saveSavedUrls } from '../src/data/storage/savedUrlsRepository';
 import { addGenre, removeGenre } from '../lib/genres';
 import { createNoticeTimer } from '../lib/noticeTimer';
 import { resolveAudio } from '../lib/resolveAudio';
-import { loadSavedUrls, saveSavedUrls } from '../lib/savedUrlsStorage';
-import type { SavedUrl } from '../lib/savedUrl';
 
 const LOAD_ERROR_MESSAGE = 'Could not load your saved URLs';
 const SAVE_ERROR_MESSAGE = 'Could not save your URL';

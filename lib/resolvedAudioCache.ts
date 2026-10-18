@@ -1,17 +1,12 @@
+import type { CacheEntries, CachedEntry } from '../src/data/models';
+import type { ResolvedAudioStoragePort } from '../src/data/ports';
 import type { ResolvedAudio } from '../modules/newpipe-resolver';
 
 // Measured: YouTube stream URLs live 6 hours. Stay under that, and leave a margin so a URL is never handed out right before it dies.
 export const RESOLVED_AUDIO_TTL_MS = 5 * 60 * 60 * 1000;
 export const EXPIRY_SAFETY_MARGIN_MS = 10 * 60 * 1000;
 
-export type CachedEntry = { audio: ResolvedAudio; expiresAt: number };
-export type CacheEntries = Record<string, CachedEntry>;
 export type CachedResolution = ResolvedAudio & { isFromCache: boolean };
-
-export type ResolvedAudioStoragePort = {
-  load: () => Promise<CacheEntries>;
-  save: (entries: CacheEntries) => Promise<void>;
-};
 
 type CachedResolverDependencies = {
   resolve: (videoUrl: string) => Promise<ResolvedAudio>;
@@ -20,30 +15,6 @@ type CachedResolverDependencies = {
 };
 
 type ResolveOptions = { refresh?: boolean };
-
-function isResolvedAudio(value: unknown): value is ResolvedAudio {
-  if (typeof value !== 'object' || value === null) return false;
-  const audio = value as Record<string, unknown>;
-  return (
-    typeof audio.url === 'string' &&
-    typeof audio.title === 'string' &&
-    typeof audio.mimeType === 'string' &&
-    typeof audio.contentLength === 'number' &&
-    (audio.thumbnailUrl === null || typeof audio.thumbnailUrl === 'string')
-  );
-}
-
-function isCachedEntry(value: unknown): value is CachedEntry {
-  if (typeof value !== 'object' || value === null) return false;
-  const entry = value as Record<string, unknown>;
-  return typeof entry.expiresAt === 'number' && Number.isFinite(entry.expiresAt) && isResolvedAudio(entry.audio);
-}
-
-export function parseCacheEntries(raw: unknown): CacheEntries {
-  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return {};
-  const validEntries = Object.entries(raw).filter(([, entry]) => isCachedEntry(entry));
-  return Object.fromEntries(validEntries);
-}
 
 export function isFresh(entry: CachedEntry, now: number): boolean {
   return now < entry.expiresAt - EXPIRY_SAFETY_MARGIN_MS;

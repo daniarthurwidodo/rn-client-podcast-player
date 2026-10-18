@@ -6,7 +6,6 @@ import {
   getProgressFraction,
   getProgressState,
   getResumePosition,
-  parseProgressByUrl,
 } from './playbackProgress.ts';
 
 const UNPLAYED_ITEM = { url: 'https://youtu.be/u', title: 'U', thumbnailUrl: null, genres: [] };
@@ -52,15 +51,4 @@ test('filters the library by progress state', () => {
 test('counts the library per filter', () => {
   assert.deepEqual(countByFilter(ITEMS, PROGRESS), { all: 3, unplayed: 1, inProgress: 1, completed: 1 });
   assert.deepEqual(countByFilter([], {}), { all: 0, unplayed: 0, inProgress: 0, completed: 0 });
-});
-
-test('parses stored progress and drops malformed entries', () => {
-  const raw = { good: { positionSeconds: 1, durationSeconds: 2 }, bad: { positionSeconds: 'x' }, worse: null };
-  assert.deepEqual(parseProgressByUrl(raw), { good: { positionSeconds: 1, durationSeconds: 2 } });
-});
-
-test('parses non-object storage values as empty', () => {
-  assert.deepEqual(parseProgressByUrl(null), {});
-  assert.deepEqual(parseProgressByUrl([1]), {});
-  assert.deepEqual(parseProgressByUrl('x'), {});
 });

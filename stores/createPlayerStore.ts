@@ -1,10 +1,10 @@
 import { createStore } from 'zustand/vanilla';
+import type { AudioEffect, AudioPlayerPort, PlaybackStatus, ProgressStoragePort } from '../src/data/ports.ts';
 import { createNoticeTimer } from '../lib/noticeTimer.ts';
 import { getResumePosition, MIN_PLAYED_SECONDS } from '../lib/playbackProgress.ts';
-import type { ProgressByUrl } from '../lib/playbackProgress.ts';
+import type { ProgressByUrl, SavedUrl } from '../src/data/models.ts';
 import { buildQueue, cycleRepeatMode, getNextStep, getPreviousStep, isLoopingTrack, reorderQueue } from '../lib/queue.ts';
 import type { QueueState, RepeatMode } from '../lib/queue.ts';
-import type { SavedUrl } from '../lib/savedUrl';
 
 const RESOLVE_ERROR_MESSAGE = 'Could not load audio for this URL';
 const SEEK_ERROR_MESSAGE = 'Could not seek in this audio';
@@ -17,43 +17,6 @@ export const PLAYBACK_RATES = [1, 1.25, 1.5, 2, 0.75];
 const DEFAULT_PLAYBACK_RATE = PLAYBACK_RATES[0];
 
 export type PlayerPhase = 'idle' | 'resolving' | 'ready' | 'error';
-
-export type AudioEffect = 'compressor' | 'vocalBoost';
-
-export type PlaybackStatus = {
-  isLoaded: boolean;
-  isBuffering: boolean;
-  playing: boolean;
-  didJustFinish: boolean;
-  currentTime: number;
-  duration: number;
-  error: string | null;
-};
-
-export type LockScreenMetadata = {
-  title: string;
-  artworkUrl: string | null;
-};
-
-export type AudioPlayerPort = {
-  replace: (uri: string) => void;
-  play: () => void;
-  pause: () => void;
-  seekTo: (seconds: number) => Promise<void>;
-  setPlaybackRate: (rate: number) => void;
-  setLoop: (isLooping: boolean) => void;
-  setEffectEnabled: (effect: AudioEffect, enabled: boolean) => Promise<void>;
-  enableBackgroundPlayback: () => Promise<void>;
-  showLockScreenControls: (metadata: LockScreenMetadata) => void;
-  hideLockScreenControls: () => void;
-  requestNotificationPermission: () => Promise<void>;
-  subscribe: (listener: (status: PlaybackStatus) => void) => void;
-};
-
-export type ProgressStoragePort = {
-  load: () => Promise<ProgressByUrl>;
-  save: (progressByUrl: ProgressByUrl) => Promise<void>;
-};
 
 export type PlayerStoreDependencies = {
   resolveAudio: (videoUrl: string, options?: { refresh?: boolean }) => Promise<{ url: string }>;

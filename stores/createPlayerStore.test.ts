@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { NOTICE_DURATION_MS } from '../lib/noticeTimer.ts';
 import { createPlayerStore, PLAYBACK_RATES } from './createPlayerStore.ts';
-import type { PlaybackStatus } from './createPlayerStore.ts';
-import type { ProgressByUrl } from '../lib/playbackProgress.ts';
+import type { ProgressByUrl } from '../src/data/models.ts';
+import type { PlaybackStatus } from '../src/data/ports.ts';
 
 const TRACK_A = { url: 'https://youtu.be/aaaaaaaaaaa', title: 'A', thumbnailUrl: null, genres: [] };
 const TRACK_B = { url: 'https://youtu.be/bbbbbbbbbbb', title: 'B', thumbnailUrl: null, genres: [] };

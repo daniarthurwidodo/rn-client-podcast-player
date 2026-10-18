@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { parseSavedUrls } from './savedUrl';
-import type { SavedUrl } from './savedUrl';
+import type { SavedUrl } from '../models';
+import { parseSavedUrls } from './parsers';
 
 const STORAGE_KEY = 'saved-urls';
 

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { parseCacheEntries } from './resolvedAudioCache';
-import type { CacheEntries } from './resolvedAudioCache';
+import type { CacheEntries } from '../models';
+import { parseCacheEntries } from './parsers';
 
 const STORAGE_KEY = 'resolved-audio';
 

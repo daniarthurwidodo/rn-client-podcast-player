@@ -1,7 +1,7 @@
 import { X } from 'lucide-react-native';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import type { SavedUrl } from '../lib/savedUrl';
+import type { SavedUrl } from '../src/data/models';
 import { colors, fonts, radii, spacing } from '../lib/theme';
 
 const REMOVE_ICON_SIZE = 14;

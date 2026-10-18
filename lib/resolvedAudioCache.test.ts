@@ -4,11 +4,10 @@ import {
   createCachedResolveAudio,
   EXPIRY_SAFETY_MARGIN_MS,
   isFresh,
-  parseCacheEntries,
   pruneStale,
   RESOLVED_AUDIO_TTL_MS,
 } from './resolvedAudioCache.ts';
-import type { CacheEntries } from './resolvedAudioCache.ts';
+import type { CacheEntries } from '../src/data/models.ts';
 
 const URL_A = 'https://youtu.be/aaaaaaaaaaa';
 const URL_B = 'https://youtu.be/bbbbbbbbbbb';
@@ -50,19 +49,6 @@ test('an entry is fresh until the safety margin before it expires', () => {
 
   assert.equal(isFresh(entry, START - 1), true);
   assert.equal(isFresh(entry, START), false);
-});
-
-test('parseCacheEntries keeps valid entries and drops malformed ones', () => {
-  const valid = entryExpiringAt(URL_A, START);
-  const raw = { [URL_A]: valid, [URL_B]: { audio: { url: 1 }, expiresAt: START }, other: 'text', nan: { audio: audioFor('x'), expiresAt: NaN } };
-
-  assert.deepEqual(parseCacheEntries(raw), { [URL_A]: valid });
-});
-
-test('parseCacheEntries treats non-object input as empty', () => {
-  assert.deepEqual(parseCacheEntries(null), {});
-  assert.deepEqual(parseCacheEntries('x'), {});
-  assert.deepEqual(parseCacheEntries([entryExpiringAt(URL_A, START)]), {});
 });
 
 test('pruneStale drops entries that are expired or inside the margin', () => {

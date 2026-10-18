@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { parseProgressByUrl } from './playbackProgress';
-import type { ProgressByUrl } from './playbackProgress';
+import type { ProgressByUrl } from '../models';
+import { parseProgressByUrl } from './parsers';
 
 const STORAGE_KEY = 'playback-progress';
 

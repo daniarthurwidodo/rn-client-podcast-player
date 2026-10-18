@@ -3,8 +3,8 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatDuration } from '../lib/formatDuration';
 import { getHostLabel } from '../lib/hostLabel';
 import { getProgressFraction, getProgressState } from '../lib/playbackProgress';
-import type { PlaybackProgress, ProgressState } from '../lib/playbackProgress';
-import type { SavedUrl } from '../lib/savedUrl';
+import type { PlaybackProgress, SavedUrl } from '../src/data/models';
+import type { ProgressState } from '../lib/playbackProgress';
 import { colors, fonts, radii, spacing } from '../lib/theme';
 
 const DELETE_ICON_SIZE = 20;

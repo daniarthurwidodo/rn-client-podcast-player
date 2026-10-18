@@ -1,4 +1,3 @@
-import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,7 +13,7 @@ import { useGenreEditor } from '../../hooks/useGenreEditor';
 import { useLibraryView } from '../../hooks/useLibraryView';
 import { useSavedUrls } from '../../hooks/useSavedUrls';
 import { isSameGenre } from '../../lib/genres';
-import type { SavedUrl } from '../../lib/savedUrl';
+import type { SavedUrl } from '../../src/data/models';
 import { colors, fonts, radii, spacing } from '../../lib/theme';
 import { usePlayerStore } from '../../stores/playerStore';
 
@@ -32,7 +31,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const savedUrls = useSavedUrls();
-  const addUrl = useAddUrlModal(savedUrls.addUrl, Clipboard.getStringAsync);
+  const addUrl = useAddUrlModal(savedUrls.addUrl);
   const playingUrl = usePlayerStore((state) => state.track?.url);
   const progressByUrl = usePlayerStore((state) => state.progressByUrl);
   const loadTrack = usePlayerStore((state) => state.loadTrack);

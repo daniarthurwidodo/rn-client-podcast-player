@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { collectGenres, filterByGenre, isSameGenre, resolveSelectedGenre } from '../lib/genres';
 import { countByFilter, filterByProgress } from '../lib/playbackProgress';
-import type { LibraryFilter, ProgressByUrl } from '../lib/playbackProgress';
-import type { SavedUrl } from '../lib/savedUrl';
+import type { ProgressByUrl, SavedUrl } from '../src/data/models';
+import type { LibraryFilter } from '../lib/playbackProgress';
 
 // The genre and progress filters apply together; the progress counts describe the genre-filtered list.
 export function useLibraryView(savedUrls: SavedUrl[], progressByUrl: ProgressByUrl) {

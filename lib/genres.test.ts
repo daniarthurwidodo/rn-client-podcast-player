@@ -5,7 +5,6 @@ import {
   collectGenres,
   filterByGenre,
   normalizeGenre,
-  parseGenres,
   removeGenre,
   resolveSelectedGenre,
   splitVisibleGenres,
@@ -42,12 +41,6 @@ test('addGenre has no limit on how many genres an item can have', () => {
 
 test('removeGenre removes a genre regardless of case', () => {
   assert.deepEqual(removeGenre(['News', 'Talk'], 'news'), ['Talk']);
-});
-
-test('parseGenres keeps only clean, unique strings', () => {
-  assert.deepEqual(parseGenres([' A ', 'a', 3, null, 'B']), ['A', 'B']);
-  assert.deepEqual(parseGenres('A'), []);
-  assert.deepEqual(parseGenres(undefined), []);
 });
 
 test('collectGenres counts items per genre, merges spellings and sorts by name', () => {
