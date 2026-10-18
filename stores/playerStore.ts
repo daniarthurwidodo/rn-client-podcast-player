@@ -2,8 +2,8 @@ import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { PermissionsAndroid, Platform } from 'react-native';
 import { useStore } from 'zustand';
 import { loadProgress, saveProgress } from '../lib/progressStorage';
+import { resolveAudio } from '../lib/resolveAudio';
 import { setEffectEnabled } from '../modules/audio-effects';
-import { resolveAudio } from '../modules/newpipe-resolver';
 import { createPlayerStore } from './createPlayerStore';
 import type { AudioPlayerPort, PlayerState } from './createPlayerStore';
 

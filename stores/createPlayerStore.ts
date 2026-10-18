@@ -52,7 +52,7 @@ export type ProgressStoragePort = {
 };
 
 export type PlayerStoreDependencies = {
-  resolveAudio: (videoUrl: string) => Promise<{ url: string }>;
+  resolveAudio: (videoUrl: string, options?: { refresh?: boolean }) => Promise<{ url: string }>;
   player: AudioPlayerPort;
   progressStorage: ProgressStoragePort;
 };
@@ -115,7 +115,8 @@ export function createPlayerStore({ resolveAudio, player, progressStorage }: Pla
 
     loadTrack: async (track) => {
       const { track: currentTrack, phase } = get();
-      if (currentTrack?.url === track.url && phase !== 'error') return;
+      const isSameTrack = currentTrack?.url === track.url;
+      if (isSameTrack && phase !== 'error') return;
 
       flushProgress();
       clearNotice();
@@ -125,7 +126,8 @@ export function createPlayerStore({ resolveAudio, player, progressStorage }: Pla
       isResumeSeekIssued = false;
       set({ ...IDLE_DATA, track, phase: 'resolving' });
       try {
-        const audio = await resolveAudio(track.url);
+        // Retrying a failed track must not reuse the cached stream URL that probably caused the failure.
+        const audio = await resolveAudio(track.url, { refresh: isSameTrack });
         if (get().track?.url !== track.url) return;
         await player.enableBackgroundPlayback();
         player.replace(audio.url);

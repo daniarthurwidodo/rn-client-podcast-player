@@ -10,7 +10,7 @@ const TRACK_B = { url: 'https://youtu.be/bbbbbbbbbbb', title: 'B', thumbnailUrl:
 const READY_STATUS: PlaybackStatus = { isLoaded: true, isBuffering: false, playing: true, currentTime: 10, duration: 100, error: null };
 
 function createFakes(
-  resolveAudio: (url: string) => Promise<{ url: string }> = async (url) => ({ url: `audio:${url}` }),
+  resolveAudio: (url: string, options?: { refresh?: boolean }) => Promise<{ url: string }> = async (url) => ({ url: `audio:${url}` }),
   shouldFailEffects = false,
   shouldFailBackground = false,
   initialProgress: ProgressByUrl = {},
@@ -575,4 +575,44 @@ test('a fatal error stays until the track is reloaded', async (t) => {
 
   assert.equal(store.getState().phase, 'error');
   assert.ok(store.getState().errorMessage);
+});
+
+function createRecordingResolver(failuresBeforeSuccess: number) {
+  const refreshFlags: boolean[] = [];
+  const resolveAudio = async (url: string, options?: { refresh?: boolean }) => {
+    refreshFlags.push(options?.refresh ?? false);
+    if (refreshFlags.length <= failuresBeforeSuccess) throw new Error('offline');
+    return { url: `audio:${url}` };
+  };
+  return { resolveAudio, refreshFlags };
+}
+
+test('a normal load lets the resolver use its cache', async () => {
+  const { resolveAudio, refreshFlags } = createRecordingResolver(0);
+  const { store } = createFakes(resolveAudio);
+
+  await store.getState().loadTrack(TRACK_A);
+
+  assert.deepEqual(refreshFlags, [false]);
+});
+
+test('retrying a failed track bypasses the resolver cache', async () => {
+  const { resolveAudio, refreshFlags } = createRecordingResolver(1);
+  const { store } = createFakes(resolveAudio);
+  await store.getState().loadTrack(TRACK_A);
+
+  await store.getState().loadTrack(TRACK_A);
+
+  assert.deepEqual(refreshFlags, [false, true]);
+  assert.equal(store.getState().phase, 'ready');
+});
+
+test('loading a different track after a failure still uses the cache', async () => {
+  const { resolveAudio, refreshFlags } = createRecordingResolver(1);
+  const { store } = createFakes(resolveAudio);
+  await store.getState().loadTrack(TRACK_A);
+
+  await store.getState().loadTrack(TRACK_B);
+
+  assert.deepEqual(refreshFlags, [false, false]);
 });
