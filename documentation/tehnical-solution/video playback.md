@@ -55,7 +55,14 @@ No cache: the video URL is resolved on every tap, so the resolved-audio cache is
 - **Kotlin has no tests in this repo**, so the stream selection is verified by hand.
 - **Mobile data use**: video is much larger than audio; there is no warning in this version.
 
-## 7. Decisions for you / later
+## 7. Decisions
+
+You left the open questions to me, so these are the defaults taken. Overrule any of them before Phase 1.
+
+1. **Quality:** highest muxed resolution, no cap. A cap is a one-line change in `resolveVideo` if data use matters.
+2. **Position:** video starts at 0 and does not sync with the audio position.
+
+Details and what is left for later:
 
 - Quality: this plan takes the highest muxed resolution. Say if you want a cap (for data use).
 - Position: video starts at 0, and closing it does not move the audio position. Syncing the start from the audio position (and back) is a small follow-up.

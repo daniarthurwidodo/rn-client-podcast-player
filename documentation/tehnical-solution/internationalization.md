@@ -55,7 +55,16 @@ Show the app in the user's device language (with English as the fallback) instea
 - **App name under the launcher icon** is not covered; per-language app names need an extra `locales` entry in `app.json` and are left out.
 - **Interaction with the video plan:** if video playback is built first, its new strings (Watch video, its errors) must be added as keys from the start. Doing i18n first is cheaper.
 
-## 7. Decisions for you
+## 7. Decisions
+
+You left the open questions to me, so these are the defaults taken. Overrule any of them before Phase 1.
+
+1. **Languages:** English only for Phases 1 to 3 (the pipeline and all strings). Phase 4 adds the first other language **once you name one and provide or approve the translation**; I did not guess one.
+2. **Library:** `i18n-js` (smallest; the locale only changes when the user returns from system settings).
+3. **Duration units:** left untranslated in this version (`h`, `m`, `s` stay in `formatDuration`); revisit when a language needs it.
+4. **Per-app language in Android settings:** included (`supportedLocales`), since the native rebuild is needed anyway.
+
+The original questions, for reference:
 
 1. **Which languages?** The plan builds the pipeline with English plus one more language to prove it. Tell me which languages, and who provides the translations.
 2. **Library:** `i18n-js` (recommended) or `i18next` + `react-i18next`.

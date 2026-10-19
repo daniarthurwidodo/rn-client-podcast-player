@@ -69,6 +69,8 @@ Details: [documentation/tehnical-solution/three layer architecture.md](documenta
 
 - [ ] Minimal video playback: a "Watch video" button on the Player screen using `expo-video` and a muxed stream from NewPipe. Planned, not started; see [documentation/tehnical-solution/video playback.md](documentation/tehnical-solution/video%20playback.md).
 - [ ] Internationalization: translate the UI into the device language (`expo-localization` + a translation library), with the business layer emitting message keys. Planned, not started; see [documentation/tehnical-solution/internationalization.md](documentation/tehnical-solution/internationalization.md).
+- [ ] More streaming services: split the stream-picking rules per service (NewPipe's SoundCloud, Bandcamp, PeerTube, media.ccc.de, YouTube Music). Spotify and Crunchyroll are DRM-protected and not planned; Dailymotion and Bilibili need their own investigation. Planned, not started; see [documentation/tehnical-solution/streaming services.md](documentation/tehnical-solution/streaming%20services.md).
+- [ ] Media handler: one place that decides whether a link plays as audio, video or both, and routes it to the right player. Depends on the video and streaming-services items. Planned, not started; see [documentation/tehnical-solution/media handler.md](documentation/tehnical-solution/media%20handler.md).
 
 ## License
 
