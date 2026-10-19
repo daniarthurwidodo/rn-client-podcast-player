@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { NOTICE_DURATION_MS } from '../noticeTimer.ts';
+import { NOTICE_DURATION_MS } from '../../shared/utils/noticeTimer.ts';
 import { createPlayerStore, PLAYBACK_RATES } from './createPlayerStore.ts';
 import type { ProgressByUrl } from '../../data/models.ts';
 import type { PlaybackStatus } from '../../data/ports.ts';

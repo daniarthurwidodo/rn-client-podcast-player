@@ -16,6 +16,19 @@ module.exports = defineConfig([
     ignores: ['dist/*'],
   },
   {
+    files: ['src/shared/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            { group: ['**/data/**', '**/modules/**', ...BUSINESS_PATTERNS, ...PRESENTATION_PATTERNS], message: 'The shared layer must not import from the data, business or presentation layer.' },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['src/data/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [

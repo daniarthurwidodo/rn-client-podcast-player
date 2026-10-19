@@ -1,8 +1,9 @@
-const SECONDS_PER_MINUTE = 60;
+import { SECONDS_PER_MINUTE, toWholeSeconds } from './wholeSeconds.ts';
+
 const MINUTES_PER_HOUR = 60;
 
 export function formatDuration(totalSeconds: number): string {
-  const wholeSeconds = Number.isFinite(totalSeconds) && totalSeconds > 0 ? Math.floor(totalSeconds) : 0;
+  const wholeSeconds = toWholeSeconds(totalSeconds);
   const totalMinutes = Math.floor(wholeSeconds / SECONDS_PER_MINUTE);
   if (totalMinutes === 0) return `${wholeSeconds}s`;
 

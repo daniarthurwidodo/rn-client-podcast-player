@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { readClipboardText } from '../../data/device/clipboard';
-import { parseHttpUrl } from './parseHttpUrl';
+import { parseHttpUrl } from '../../shared/utils/parseHttpUrl';
 
 const INVALID_URL_MESSAGE = 'Enter a valid http(s) URL';
 const NO_CLIPBOARD_URL_MESSAGE = 'No link found on the clipboard. Paste one below.';

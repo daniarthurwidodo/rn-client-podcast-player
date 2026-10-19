@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { SavedUrl } from '../../data/models';
 import { loadSavedUrls, saveSavedUrls } from '../../data/storage/savedUrlsRepository';
 import { addGenre, removeGenre } from '../genres/genres';
-import { createNoticeTimer } from '../noticeTimer';
+import { createNoticeTimer } from '../../shared/utils/noticeTimer';
 import { resolveAudio } from '../resolve/resolveAudio';
 
 const LOAD_ERROR_MESSAGE = 'Could not load your saved URLs';

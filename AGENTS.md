@@ -36,7 +36,7 @@ Code lives under `src/` in three layers that depend **downwards only**: presenta
 - `src/data/` (and the native modules in `modules/`): storage, device and native access, stored-data parsing, port interfaces. Imports nothing from the layers above.
 - `src/business/` (one folder per feature with its logic and hooks together: `genres/`, `library/`, `playback/`, `resolve/`; Zustand stores in `stores/`): rules, state and the hooks that combine them. Reaches devices and storage only through `src/data`; no React Native, `expo-*` or UI imports.
 - `src/presentation/` (`screens/`, `components/`, `theme.ts`) and `src/app/`: UI only. Uses business hooks; may import only **types** from `src/data/models`.
-- `src/shared/utils/`: pure helpers (time and host formatting) with no layer imports; any layer may use them.
+- `src/shared/utils/`: pure helpers (time and host formatting, notice timer, http URL parsing) with no layer imports; any layer may use them.
 - Files that tests reach (business logic, parsers) use relative imports with the `.ts` extension and no React Native imports, because tests run on plain Node (`npm test`).
 - Details and rationale: `documentation/tehnical-solution/three layer architecture.md`.
 

@@ -36,7 +36,7 @@ Someone who listens to talks, interviews and podcasts published as YouTube video
 
 | ID | Requirement | Status |
 |---|---|---|
-| F1 | Add a URL; only `http(s)` accepted, input trimmed | Done (`src/business/library/parseHttpUrl.ts`) |
+| F1 | Add a URL; only `http(s)` accepted, input trimmed | Done (`src/shared/utils/parseHttpUrl.ts`) |
 | F2 | On add, resolve title + thumbnail; reject the add if resolve fails | Done (`useSavedUrls.addUrl`, `src/business/library`) |
 | F3 | Adding an already-saved URL is a silent no-op (modal closes) | Done |
 | F4 | Persist the library locally (AsyncStorage `saved-urls`), newest first | Done |
@@ -101,7 +101,7 @@ Everything lives under `src/`, in three layers that depend downwards only: **pre
 | `src/data/` (+ `modules/`) | Data | AsyncStorage repositories, parsing of stored data, the `expo-audio` adapter, clipboard, port interfaces, the native modules | nothing above it |
 | `src/business/` | Business (incl. hooks) | one folder per feature, each with its logic and hooks together: `genres/`, `library/`, `playback/` (queue, progress rules), `resolve/` (cache policy), plus `stores/` (the Zustand player store, split per concern) | `src/data`, React, Zustand; no UI or device packages |
 | `src/presentation/` | Presentation | `screens/`, `components/`, `theme.ts` | `src/business`, UI libraries; from `src/data` only types |
-| `src/shared/utils/` | Shared | `formatTime`, `formatDuration`, `hostLabel` | nothing from the other layers |
+| `src/shared/utils/` | Shared | `formatTime`, `formatDuration`, `hostLabel`, `noticeTimer`, `parseHttpUrl` | nothing from the other layers |
 | `src/app/` | Presentation (routes) | Expo Router files: one-line re-exports of screens plus `_layout`s | same as presentation |
 
 Design record: `documentation/tehnical-solution/three layer architecture.md`.
