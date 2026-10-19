@@ -1,7 +1,7 @@
 import { Pause, Play, Repeat, Repeat1, RotateCcw, RotateCw, Shuffle, SkipBack, SkipForward } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { formatTime } from '../format/formatTime';
+import { formatTime } from '../../shared/utils/formatTime';
 import { colors, fonts, radii, spacing } from '../theme';
 import { usePlayerStore } from '../../business/stores/playerStore';
 import { QueueButton } from './QueueButton';

@@ -100,7 +100,8 @@ Everything lives under `src/`, in three layers that depend downwards only: **pre
 |---|---|---|---|
 | `src/data/` (+ `modules/`) | Data | AsyncStorage repositories, parsing of stored data, the `expo-audio` adapter, clipboard, port interfaces, the native modules | nothing above it |
 | `src/business/` | Business (incl. hooks) | one folder per feature, each with its logic and hooks together: `genres/`, `library/`, `playback/` (queue, progress rules), `resolve/` (cache policy), plus `stores/` (the Zustand player store, split per concern) | `src/data`, React, Zustand; no UI or device packages |
-| `src/presentation/` | Presentation | `screens/`, `components/`, `theme.ts`, `format/` | `src/business`, UI libraries; from `src/data` only types |
+| `src/presentation/` | Presentation | `screens/`, `components/`, `theme.ts` | `src/business`, UI libraries; from `src/data` only types |
+| `src/shared/utils/` | Shared | `formatTime`, `formatDuration`, `hostLabel` | nothing from the other layers |
 | `src/app/` | Presentation (routes) | Expo Router files: one-line re-exports of screens plus `_layout`s | same as presentation |
 
 Design record: `documentation/tehnical-solution/three layer architecture.md`.

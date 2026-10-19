@@ -1,7 +1,7 @@
 import { CircleCheck, X } from 'lucide-react-native';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { formatDuration } from '../format/formatDuration';
-import { getHostLabel } from '../format/hostLabel';
+import { formatDuration } from '../../shared/utils/formatDuration';
+import { getHostLabel } from '../../shared/utils/hostLabel';
 import { getProgressFraction, getProgressState } from '../../business/playback/playbackProgress';
 import type { PlaybackProgress, SavedUrl } from '../../data/models';
 import type { ProgressState } from '../../business/playback/playbackProgress';

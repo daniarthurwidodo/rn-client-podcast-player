@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Pause, Play } from 'lucide-react-native';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { formatTime } from '../format/formatTime';
+import { formatTime } from '../../shared/utils/formatTime';
 import { colors, fonts, radii, spacing } from '../theme';
 import { usePlayerStore } from '../../business/stores/playerStore';
 

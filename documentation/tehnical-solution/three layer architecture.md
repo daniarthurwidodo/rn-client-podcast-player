@@ -2,6 +2,8 @@
 
 Status: **Done. All five phases built (§11–§15).** Everything lives under `src/` (decision 1 changed from my recommendation).
 
+> Later: the `format/` helpers moved from `src/presentation/format/` to `src/shared/utils/`.
+>
 > Later reorganisation: inside `src/business/`, `logic/` and `hooks/` were replaced by one folder per feature (`genres/`, `library/`, `playback/`, `resolve/`, plus `noticeTimer.ts`), and `player/` was renamed `stores/`. Paths below are as originally built.
 
 ## 1. Goal

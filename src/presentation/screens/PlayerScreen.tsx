@@ -4,7 +4,7 @@ import { AudioPlayer } from '../components/AudioPlayer';
 import { PlaylistPanel } from '../components/PlaylistPanel';
 import { LoadingSnackbar } from '../components/LoadingSnackbar';
 import { ErrorMessage } from '../components/StatusMessage';
-import { getHostLabel } from '../format/hostLabel';
+import { getHostLabel } from '../../shared/utils/hostLabel';
 import { colors, fonts, spacing } from '../theme';
 import { usePlayerStore } from '../../business/stores/playerStore';
 import type { PlayerPhase } from '../../business/stores/createPlayerStore';
