@@ -68,6 +68,7 @@ Details: [documentation/tehnical-solution/three layer architecture.md](documenta
 ## TODO
 
 - [ ] Minimal video playback: a "Watch video" button on the Player screen using `expo-video` and a muxed stream from NewPipe. Planned, not started; see [documentation/tehnical-solution/video playback.md](documentation/tehnical-solution/video%20playback.md).
+- [ ] Internationalization: translate the UI into the device language (`expo-localization` + a translation library), with the business layer emitting message keys. Planned, not started; see [documentation/tehnical-solution/internationalization.md](documentation/tehnical-solution/internationalization.md).
 
 ## License
 
