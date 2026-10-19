@@ -19,7 +19,7 @@ There is no backend: all resolving happens on the phone.
 - Playback speed and a draggable scrubber
 - Optional compressor and vocal-boost audio effects (native module)
 
-See [PRD.md](PRD.md) for the full requirements and [DESIGN.md](DESIGN.md) for the design system.
+New here? Read the [walkthrough](documentation/walkthrough.md). See [PRD.md](PRD.md) for the full requirements and [DESIGN.md](DESIGN.md) for the design system.
 
 ## Stack
 
@@ -71,6 +71,9 @@ Details: [documentation/tehnical-solution/three layer architecture.md](documenta
 - [ ] Internationalization: translate the UI into the device language (`expo-localization` + a translation library), with the business layer emitting message keys. Planned, not started; see [documentation/tehnical-solution/internationalization.md](documentation/tehnical-solution/internationalization.md).
 - [ ] More streaming services: split the stream-picking rules per service (NewPipe's SoundCloud, Bandcamp, PeerTube, media.ccc.de, YouTube Music). Spotify and Crunchyroll are DRM-protected and not planned; Dailymotion and Bilibili need their own investigation. Planned, not started; see [documentation/tehnical-solution/streaming services.md](documentation/tehnical-solution/streaming%20services.md).
 - [ ] Media handler: one place that decides whether a link plays as audio, video or both, and routes it to the right player. Depends on the video and streaming-services items. Planned, not started; see [documentation/tehnical-solution/media handler.md](documentation/tehnical-solution/media%20handler.md).
+- [ ] Advertising: one AdMob banner on the Home screen (`react-native-google-mobile-ads`, consent first). Blocked on a policy check, because the app extracts content from YouTube. Planned, not started; see [documentation/tehnical-solution/advertising.md](documentation/tehnical-solution/advertising.md).
+- [ ] Walkthrough: check [documentation/walkthrough.md](documentation/walkthrough.md) against the app on a device (it was written from the requirements and code, not by trying each step) and add a screenshot for each step.
+- [ ] Onboarding screen: a short swipeable introduction on the first launch only (skipped for anyone who already has a library). No new dependencies. Planned, not started; see [documentation/tehnical-solution/onboarding.md](documentation/tehnical-solution/onboarding.md).
 
 ## License
 
