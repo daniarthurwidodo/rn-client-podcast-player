@@ -65,6 +65,10 @@ e2e/                Cucumber + Appium scaffold
 
 Details: [documentation/tehnical-solution/three layer architecture.md](documentation/tehnical-solution/three%20layer%20architecture.md). Contributor and agent conventions are in [AGENTS.md](AGENTS.md).
 
+## TODO
+
+- [ ] Minimal video playback: a "Watch video" button on the Player screen using `expo-video` and a muxed stream from NewPipe. Planned, not started; see [documentation/tehnical-solution/video playback.md](documentation/tehnical-solution/video%20playback.md).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
