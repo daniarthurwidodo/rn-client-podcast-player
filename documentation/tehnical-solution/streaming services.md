@@ -30,7 +30,12 @@ This plan covers the first two rows. The DRM services are left unsupported on pu
 ## 4. Approach
 
 - **"Submodule" is read here as one provider per service inside the codebase**, not a separate git repository (see decision 1). All five NewPipe services share one library and one global `NewPipe.init(downloader)`, so they stay in **one** native module; splitting that into several Expo modules would only duplicate the setup.
-- **Kotlin: a picker per service.** A small `StreamPicker` interface (`pick(info): AudioStream`), one implementation per service (`YouTubePicker` = today's rule moved unchanged, then `SoundCloudPicker`, `BandcampPicker`, …), and a registry keyed by `info.serviceId` (YouTube 0, SoundCloud 1, media.ccc.de 2, PeerTube 3, Bandcamp 4, from the library's service list). `AudioResolver` stays the only entry point and picks the right one.
+- **Kotlin: a picker per service.** A small `StreamPicker` interface (`pick(info): AudioStream`), one implementation per service (`YouTubePicker` = today's rule moved unchanged, then `SoundCloudPicker`, `BandcampPicker`, …), and a registry keyed by service id (YouTube 0, SoundCloud 1, media.ccc.de 2, PeerTube 3, Bandcamp 4, from the library's service list). `AudioResolver` stays the only entry point and picks the right one. The service is found **from the URL** (next bullet), not from the fetched `StreamInfo`.
+- **Detect the service from the URL, before any network call.** One function, `detectService(url)`, in Kotlin next to the registry. Planned rule: ask NewPipe which service owns the URL (`NewPipe.getServiceByUrl(url)` and its `serviceId`; *this method and its behaviour in `v0.26.5` are unverified, Phase 2 starts by checking it*). Then:
+  - a known service id → its picker, and only then `StreamInfo.getInfo(url)`;
+  - no service claims the URL (Spotify, Crunchyroll, any other site) → the unsupported-site error **immediately, with no network request**;
+  - `music.youtube.com` and `youtube.com` both map to the YouTube service; if YouTube Music ever needs its own rule, the host decides it inside `YouTubePicker`, not a new service id.
+  Why by URL and not by `info.serviceId`: it fails fast and offline, it picks the rule before fetching, and an unsupported link no longer costs a request. The detection lives in one place; the host is **not** re-listed in TypeScript (that would duplicate the knowledge and drift), so JavaScript only learns the result through the error code.
 - **A new, distinct error for unsupported sites.** NewPipe throws when no service handles a URL; map that to its own error code, so the UI can say "This site isn't supported" instead of the generic failure. It needs a message key in the same way as the internationalization plan.
 - **No JavaScript provider registry yet.** With one native module there is nothing to register. When a second, non-NewPipe module appears (Dailymotion/Bilibili), add a `resolveAudio` router in `src/data/` that picks a module by host. Building that now would be speculative.
 - **Nothing changes for the cache, the stores, the queue or the stored data.** The service is derived from the URL when needed, not saved, so there is no storage migration.
@@ -40,7 +45,8 @@ This plan covers the first two rows. The DRM services are left unsupported on pu
 | Layer | File | Change |
 |---|---|---|
 | Data (native) | `modules/newpipe-resolver/android/.../StreamPicker.kt` and one `<Service>Picker.kt` each (new) | The interface, and the per-service rule. `YouTubePicker` is the code now in `AudioResolver`, moved unchanged. |
-| Data (native) | `AudioResolver.kt` | Looks up the picker by `info.serviceId`; throws the unsupported-site error for a service without one. |
+| Data (native) | `ServiceDetector.kt` (new) | `detectService(url)`: URL → service id, or none. Pure given the URL, so it can be unit-tested on the JVM with sample links (see Phase 2). |
+| Data (native) | `AudioResolver.kt` | Calls `detectService(url)` first, looks up the picker by that id, then fetches; throws the unsupported-site error when none is found. |
 | Data (native) | `NewPipeResolverModule.kt`, `modules/newpipe-resolver/index.ts` | New error code for "unsupported site"; optional `service` string in the result if the UI needs it. |
 | Business | `business/messages.ts` (from the i18n plan) | A new key for the unsupported-site message. Without the i18n plan: one new constant next to `RESOLVE_ERROR_MESSAGE`. |
 | Presentation | none required | Host label and list already work for any host. A service badge is optional (decision 3). |
@@ -48,9 +54,9 @@ This plan covers the first two rows. The DRM services are left unsupported on pu
 ## 6. Phases (one reviewable chunk each, stop after each)
 
 1. **Spike, no code kept.** In a development build, call the current `resolveAudio` on one sample link per NewPipe service (YouTube Music, SoundCloud, Bandcamp, PeerTube, media.ccc.de) and write down, for each: does it resolve, which formats does it offer, does the current picker reject it, does `expo-audio` play it (HLS in particular). Needs sample links from you and a dev build. Output: a table added to this file, which settles the *unverified* rows in §3.
-2. **Split by service.** `StreamPicker`, the registry, `YouTubePicker` moved without behaviour change. Done when: the app still plays YouTube exactly as before on a device, lint, `tsc` and `npm test` pass. Kotlin has no tests in this repo, so this phase is checked by hand.
+2. **Split by service, detected by URL.** First confirm what `NewPipe.getServiceByUrl` does in `v0.26.5` for each sample link from Phase 1, including short links (`youtu.be`, `on.soundcloud.com`) and `music.youtube.com`. Then `ServiceDetector`, `StreamPicker`, the registry and `YouTubePicker` (moved without behaviour change). Done when: the app still plays YouTube exactly as before on a device, lint, `tsc` and `npm test` pass. Kotlin has no tests in this repo; `ServiceDetector` is the exception worth a small JVM test (sample URL → expected service id, a Spotify URL → none), the rest is checked by hand.
 3. **Add the services Phase 1 shows are playable**, one picker per service, each checked on a device. A service the spike shows cannot be played is dropped, not forced.
-4. **Unsupported-site error** end to end (Kotlin code, TypeScript, message). Done when: pasting a Spotify or Crunchyroll link shows the new message, not the generic one.
+4. **Unsupported-site error** end to end (Kotlin code, TypeScript, message), raised by `detectService` returning none. Done when: pasting a Spotify or Crunchyroll link shows the new message, not the generic one, and does so without a network request (checked in airplane mode).
 5. **Docs.** `PRD.md` requirement rows, `README.md` ("currently YouTube" and the features list), this file's status, and the README TODO.
 
 Not planned here: Dailymotion and Bilibili. They need their own spike and a decision on the extractor (§3) before any phase can be written.
@@ -62,6 +68,8 @@ Not planned here: Dailymotion and Bilibili. They need their own spike and a deci
 - **Format coverage** (HLS, webm/opus, mp3 progressive) depends on what `expo-audio` can play; Phase 1 tests it instead of assuming.
 - **Video plan:** the minimal video plan picks a muxed stream; it would need the same per-service picker (a second method on `StreamPicker`). Build the interface with audio only now.
 - **Some services serve video-only or live content**; they will hit the unsupported/failed path.
+- **URL detection limits:** short or redirecting links (share links, `bit.ly`) and links with unusual hosts may not be claimed by any service even though the page behind them is supported. They would be reported as unsupported. Following redirects first would fix it but adds a network call, so it is left out unless the spike shows real links failing.
+- **Detection can disagree with fetching:** a URL a service claims (say a YouTube channel page, not a video) can still fail in `StreamInfo.getInfo`; that stays the generic failure, not "unsupported".
 - **Native change** → new development build; Android only.
 
 ## 8. Decisions
