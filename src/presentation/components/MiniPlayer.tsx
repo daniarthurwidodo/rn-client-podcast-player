@@ -3,7 +3,7 @@ import { Pause, Play } from 'lucide-react-native';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatTime } from '../format/formatTime';
 import { colors, fonts, radii, spacing } from '../theme';
-import { usePlayerStore } from '../../business/player/playerStore';
+import { usePlayerStore } from '../../business/stores/playerStore';
 
 const PLAYER_PATH = '/player';
 const FETCHING_INFO_MESSAGE = 'Fetching audio info...';

@@ -1,6 +1,6 @@
 import type { ProgressByUrl, SavedUrl } from '../../data/models.ts';
 import type { AudioEffect, AudioPlayerPort, ProgressStoragePort } from '../../data/ports.ts';
-import type { QueueState, RepeatMode } from '../logic/queue.ts';
+import type { QueueState, RepeatMode } from '../playback/queue.ts';
 
 // The speed chip cycles through these in order.
 export const PLAYBACK_RATES = [1, 1.25, 1.5, 2, 0.75];

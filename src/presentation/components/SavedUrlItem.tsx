@@ -2,9 +2,9 @@ import { CircleCheck, X } from 'lucide-react-native';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { formatDuration } from '../format/formatDuration';
 import { getHostLabel } from '../format/hostLabel';
-import { getProgressFraction, getProgressState } from '../../business/logic/playbackProgress';
+import { getProgressFraction, getProgressState } from '../../business/playback/playbackProgress';
 import type { PlaybackProgress, SavedUrl } from '../../data/models';
-import type { ProgressState } from '../../business/logic/playbackProgress';
+import type { ProgressState } from '../../business/playback/playbackProgress';
 import { colors, fonts, radii, spacing } from '../theme';
 
 const DELETE_ICON_SIZE = 20;

@@ -1,5 +1,5 @@
 import type { AudioPlayerPort, PlaybackStatus, ProgressStoragePort } from '../../data/ports.ts';
-import { getResumePosition, MIN_PLAYED_SECONDS } from '../logic/playbackProgress.ts';
+import { getResumePosition, MIN_PLAYED_SECONDS } from '../playback/playbackProgress.ts';
 import type { Notices } from './notices.ts';
 import { PROGRESS_LOAD_ERROR_MESSAGE, PROGRESS_SAVE_ERROR_MESSAGE, SEEK_ERROR_MESSAGE } from './playerMessages.ts';
 import type { StoreAccess } from './playerState.ts';

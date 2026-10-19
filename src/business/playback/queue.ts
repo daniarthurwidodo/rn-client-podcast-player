@@ -1,5 +1,5 @@
 import type { SavedUrl } from '../../data/models';
-import { isSameGenre } from './genres.ts';
+import { isSameGenre } from '../genres/genres.ts';
 
 export type RepeatMode = 'off' | 'all' | 'one';
 

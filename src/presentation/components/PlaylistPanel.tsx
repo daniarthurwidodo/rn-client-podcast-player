@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { SavedUrl } from '../../data/models';
 import { colors, fonts, radii, spacing } from '../theme';
-import { usePlayerStore } from '../../business/player/playerStore';
+import { usePlayerStore } from '../../business/stores/playerStore';
 
 const ROW_HEIGHT = 48;
 const PLAYING_ICON_SIZE = 16;

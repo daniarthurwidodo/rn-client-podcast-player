@@ -1,5 +1,5 @@
 import type { AudioPlayerPort } from '../../data/ports.ts';
-import { isLoopingTrack } from '../logic/queue.ts';
+import { isLoopingTrack } from '../playback/queue.ts';
 import type { PlayerStoreDependencies, StoreAccess } from './playerState.ts';
 
 type QueueSideEffectsDependencies = {

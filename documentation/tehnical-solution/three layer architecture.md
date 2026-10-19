@@ -2,6 +2,8 @@
 
 Status: **Done. All five phases built (§11–§15).** Everything lives under `src/` (decision 1 changed from my recommendation).
 
+> Later reorganisation: inside `src/business/`, `logic/` and `hooks/` were replaced by one folder per feature (`genres/`, `library/`, `playback/`, `resolve/`, plus `noticeTimer.ts`), and `player/` was renamed `stores/`. Paths below are as originally built.
+
 ## 1. Goal
 
 Reorganise the code into three layers with a strict one-way dependency:
@@ -222,7 +224,7 @@ Left for Phase 5: update `PRD.md` and `AGENTS.md` for the new layout. Phase 4 (o
 
 ## 14. Phase 4 status — done (split of `createPlayerStore.ts`)
 
-`createPlayerStore.ts` was one 398-line file whose factory function was about 290 lines. It is now a 53-line composition file plus one module per concern, all in `src/business/player/`:
+`createPlayerStore.ts` was one 398-line file whose factory function was about 290 lines. It is now a 53-line composition file plus one module per concern, all in `src/business/stores/`:
 
 | Module | Responsibility |
 |---|---|

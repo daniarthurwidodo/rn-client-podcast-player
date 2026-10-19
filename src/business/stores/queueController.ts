@@ -1,6 +1,6 @@
 import type { SavedUrl } from '../../data/models.ts';
-import { buildQueue, cycleRepeatMode, getNextStep, getPreviousStep, reorderQueue } from '../logic/queue.ts';
-import type { QueueState } from '../logic/queue.ts';
+import { buildQueue, cycleRepeatMode, getNextStep, getPreviousStep, reorderQueue } from '../playback/queue.ts';
+import type { QueueState } from '../playback/queue.ts';
 import type { PlayerActions, StoreAccess } from './playerState.ts';
 import type { QueueSideEffects } from './queueSideEffects.ts';
 

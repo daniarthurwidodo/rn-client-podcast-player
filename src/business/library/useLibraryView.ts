@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { collectGenres, filterByGenre, isSameGenre, resolveSelectedGenre } from '../logic/genres';
-import { countByFilter, filterByProgress } from '../logic/playbackProgress';
-import { searchItems } from '../logic/search';
+import { collectGenres, filterByGenre, isSameGenre, resolveSelectedGenre } from '../genres/genres';
+import { countByFilter, filterByProgress } from '../playback/playbackProgress';
+import { searchItems } from './search';
 import type { ProgressByUrl, SavedUrl } from '../../data/models';
-import type { LibraryFilter } from '../logic/playbackProgress';
+import type { LibraryFilter } from '../playback/playbackProgress';
 
 // The genre and progress filters apply together, then the search text narrows the result; the progress counts
 // describe the genre-filtered list and ignore the search text.

@@ -36,8 +36,8 @@ Someone who listens to talks, interviews and podcasts published as YouTube video
 
 | ID | Requirement | Status |
 |---|---|---|
-| F1 | Add a URL; only `http(s)` accepted, input trimmed | Done (`src/business/logic/parseHttpUrl.ts`) |
-| F2 | On add, resolve title + thumbnail; reject the add if resolve fails | Done (`useSavedUrls.addUrl`, `src/business/hooks`) |
+| F1 | Add a URL; only `http(s)` accepted, input trimmed | Done (`src/business/library/parseHttpUrl.ts`) |
+| F2 | On add, resolve title + thumbnail; reject the add if resolve fails | Done (`useSavedUrls.addUrl`, `src/business/library`) |
 | F3 | Adding an already-saved URL is a silent no-op (modal closes) | Done |
 | F4 | Persist the library locally (AsyncStorage `saved-urls`), newest first | Done |
 | F5 | Migrate legacy entries stored as plain strings; backfill their titles on launch | Done |
@@ -53,7 +53,7 @@ Someone who listens to talks, interviews and podcasts published as YouTube video
 | F15 | Mini player at the bottom of every tab; hidden on the Player screen | Done |
 | F16 | **Progress:** save position + duration per URL (`playback-progress`) about every 5 s of playback, and on pause, track switch and stop | Done |
 | F17 | **Resume:** re-opening an in-progress track seeks to the saved position; completed or barely-started tracks start at 0:00 | Done |
-| F18 | **Progress states:** *Unplayed* (< 5 s played), *In progress*, *Completed* (within 10 s of the end) | Done (`src/business/logic/playbackProgress.ts`) |
+| F18 | **Progress states:** *Unplayed* (< 5 s played), *In progress*, *Completed* (within 10 s of the end) | Done (`src/business/playback/playbackProgress.ts`) |
 | F19 | **Filter chips** All / Unplayed / In Progress / Completed with counts | Done |
 | F20 | **Paste bar:** read the clipboard and open the Add modal prefilled; if no valid link, open empty with a message | Done — user still confirms with Add |
 | F21 | **Bottom tabs** Home / Explore / Library / Downloads | Removed — the tab bar is hidden; the three placeholder screens still exist but are unreachable |
@@ -62,7 +62,7 @@ Someone who listens to talks, interviews and podcasts published as YouTube video
 | F25 | **Genres:** free-text tags on a saved item, any number, case-insensitive, stored on the item (`genres`); long-press a card or tap its badges / "+ Genre" to edit | Done |
 | F26 | **Genre filter:** chip row on Home (first 3, then Show more / Show less), combined with the progress filter | Done |
 | F27 | **Auto playlist by tag:** tapping a card queues the other saved items that share a genre with it (tapped item first, then library order); with no related item it plays alone. The queue auto-advances when a track ends | Done (`buildRelatedQueue`, `useHomeScreen.playTrack`) |
-| F32 | **Search:** a field under the title filters the Home list by title, genre or URL (case- and accent-insensitive, every word must match); applied after the genre and progress filters; chip counts ignore it | Done (`src/business/logic/search.ts`) |
+| F32 | **Search:** a field under the title filters the Home list by title, genre or URL (case- and accent-insensitive, every word must match); applied after the genre and progress filters; chip counts ignore it | Done (`src/business/library/search.ts`) |
 | F28 | **Player queue controls:** previous / next, shuffle toggle (mid-playback), repeat off → all → one (one uses the player's native loop) | Done |
 | F29 | **Playlist panel** on the Player: queued tracks, current highlighted, tap to jump, scrolls | Done |
 | F30 | **Resolved-audio cache:** stream URLs cached 5 h (measured URL life 6 h); Retry bypasses it; the next queue track is resolved ahead of time | Done |
@@ -99,7 +99,7 @@ Everything lives under `src/`, in three layers that depend downwards only: **pre
 | Folder | Layer | Holds | May import |
 |---|---|---|---|
 | `src/data/` (+ `modules/`) | Data | AsyncStorage repositories, parsing of stored data, the `expo-audio` adapter, clipboard, port interfaces, the native modules | nothing above it |
-| `src/business/` | Business (incl. hooks) | `logic/` (genres, queue, progress rules, cache policy), `player/` (the Zustand store, split per concern), `hooks/` | `src/data`, React, Zustand; no UI or device packages |
+| `src/business/` | Business (incl. hooks) | one folder per feature, each with its logic and hooks together: `genres/`, `library/`, `playback/` (queue, progress rules), `resolve/` (cache policy), plus `stores/` (the Zustand player store, split per concern) | `src/data`, React, Zustand; no UI or device packages |
 | `src/presentation/` | Presentation | `screens/`, `components/`, `theme.ts`, `format/` | `src/business`, UI libraries; from `src/data` only types |
 | `src/app/` | Presentation (routes) | Expo Router files: one-line re-exports of screens plus `_layout`s | same as presentation |
 

@@ -6,8 +6,8 @@ import { LoadingSnackbar } from '../components/LoadingSnackbar';
 import { ErrorMessage } from '../components/StatusMessage';
 import { getHostLabel } from '../format/hostLabel';
 import { colors, fonts, spacing } from '../theme';
-import { usePlayerStore } from '../../business/player/playerStore';
-import type { PlayerPhase } from '../../business/player/createPlayerStore';
+import { usePlayerStore } from '../../business/stores/playerStore';
+import type { PlayerPhase } from '../../business/stores/createPlayerStore';
 
 const FETCHING_INFO_MESSAGE = 'Fetching audio info...';
 const BUFFERING_MESSAGE = 'Buffering...';

@@ -37,8 +37,8 @@ saved items → genre filter → progress filter → search → visible list
 
 | Layer | File | Change |
 |---|---|---|
-| Business logic | `src/business/logic/search.ts` (new, + `search.test.ts`) | `searchItems(items, query)` and the normalisation it uses: pure, no React |
-| Business hook | `src/business/hooks/useLibraryView.ts` | owns `query` / `setQuery` and applies `searchItems` as the last step; `useHomeScreen` passes it through unchanged (it already returns the whole `view`) |
+| Business logic | `src/business/library/search.ts` (new, + `search.test.ts`) | `searchItems(items, query)` and the normalisation it uses: pure, no React |
+| Business hook | `src/business/library/useLibraryView.ts` | owns `query` / `setQuery` and applies `searchItems` as the last step; `useHomeScreen` passes it through unchanged (it already returns the whole `view`) |
 | Presentation | `src/presentation/components/SearchBar.tsx` (new) | text field with a search icon and a clear button |
 | Presentation | `src/presentation/screens/HomeScreen.tsx` | shows `SearchBar` under the paste bar (hidden while the library is empty); a "No matches" empty message when a search finds nothing; `keyboardShouldPersistTaps="handled"` on the list so a tap on a card works while the keyboard is open |
 | Docs | `PRD.md` | new requirement row and Home table row |
@@ -70,7 +70,7 @@ Not covered by automated tests: the `SearchBar` component and the Home wiring (t
 
 ## 8. Implementation notes
 
-Built as proposed: `searchItems` in `src/business/logic/search.ts` (11 tests, 172 in total), `query` and `setQuery` in `useLibraryView`, `SearchBar`, and the Home wiring (`keyboardShouldPersistTaps="handled"`, a "No matches for …" message).
+Built as proposed: `searchItems` in `src/business/library/search.ts` (11 tests, 172 in total), `query` and `setQuery` in `useLibraryView`, `SearchBar`, and the Home wiring (`keyboardShouldPersistTaps="handled"`, a "No matches for …" message).
 
 Checked on the emulator: the field appears under the paste bar; "indie" leaves one card; "zzz" shows `No matches for "zzz"`; the clear (x) button empties the field and restores both cards; with the keyboard open, one tap on a card opens the Player.
 

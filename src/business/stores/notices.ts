@@ -1,4 +1,4 @@
-import { createNoticeTimer } from '../logic/noticeTimer.ts';
+import { createNoticeTimer } from '../noticeTimer.ts';
 import type { StoreAccess } from './playerState.ts';
 
 export type Notices = ReturnType<typeof createNotices>;

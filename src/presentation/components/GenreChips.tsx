@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { isSameGenre, splitVisibleGenres } from '../../business/logic/genres';
-import type { GenreCount } from '../../business/logic/genres';
+import { isSameGenre, splitVisibleGenres } from '../../business/genres/genres';
+import type { GenreCount } from '../../business/genres/genres';
 import { spacing } from '../theme';
 import { Chip } from './Chip';
 

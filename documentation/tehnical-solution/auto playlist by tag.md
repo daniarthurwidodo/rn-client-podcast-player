@@ -25,8 +25,8 @@ Tapping the card that is **already playing** rebuilds the queue around it (it ke
 
 | Layer | File | Change |
 |---|---|---|
-| Business logic | `src/business/logic/queue.ts` | new pure `buildRelatedQueue(items, track)`: returns `[track, ...related]`, or `[track]` when nothing is related; no React, no store |
-| Business hook | `src/business/hooks/useHomeScreen.ts` | `playTrack(item)` calls `playQueue(buildRelatedQueue(library, item), { shuffle: false })` when the result has more than one item, otherwise `loadTrack(item)` |
+| Business logic | `src/business/playback/queue.ts` | new pure `buildRelatedQueue(items, track)`: returns `[track, ...related]`, or `[track]` when nothing is related; no React, no store |
+| Business hook | `src/business/library/useHomeScreen.ts` | `playTrack(item)` calls `playQueue(buildRelatedQueue(library, item), { shuffle: false })` when the result has more than one item, otherwise `loadTrack(item)` |
 | Player store | unchanged | `playQueue` already sets the queue and starts the first track; auto-advance, prefetch of the next track, repeat and shuffle all already work on it |
 | Presentation | unchanged | the Player already shows the queue controls and panel whenever a queue exists |
 
@@ -57,6 +57,6 @@ The store behaviour behind it (`playQueue`, auto-advance) is already covered by 
 
 ## 7. Implementation notes
 
-Built as proposed: `buildRelatedQueue` in `src/business/logic/queue.ts` (5 new tests, 177 in total) and `playTrack` in `useHomeScreen`. The store and the Player UI needed no change.
+Built as proposed: `buildRelatedQueue` in `src/business/playback/queue.ts` (5 new tests, 177 in total) and `playTrack` in `useHomeScreen`. The store and the Player UI needed no change.
 
 Checked on the emulator (both saved items share the tag "podcast"): tapping the second card opens the Player with the playlist panel "1 / 2", the tapped track first and the other queued after it; Next moves to the other track ("2 / 2"). Not checked on the device: a track whose tag nobody else shares (plays alone, no panel) and auto-advance at the natural end of a track in this flow (both covered by the existing store tests, and the end-of-track advance was verified on the emulator earlier).

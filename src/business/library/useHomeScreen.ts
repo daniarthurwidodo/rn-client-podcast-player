@@ -1,9 +1,9 @@
 import type { SavedUrl } from '../../data/models';
-import { isSameGenre } from '../logic/genres';
-import { buildRelatedQueue } from '../logic/queue';
-import { usePlayerStore } from '../player/playerStore';
+import { isSameGenre } from '../genres/genres';
+import { buildRelatedQueue } from '../playback/queue';
+import { usePlayerStore } from '../stores/playerStore';
 import { useAddUrlModal } from './useAddUrlModal';
-import { useGenreEditor } from './useGenreEditor';
+import { useGenreEditor } from '../genres/useGenreEditor';
 import { useLibraryView } from './useLibraryView';
 import { useSavedUrls } from './useSavedUrls';
 
